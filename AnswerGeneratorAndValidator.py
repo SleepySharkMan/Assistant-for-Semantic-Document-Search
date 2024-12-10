@@ -44,7 +44,7 @@ class AnswerGeneratorAndValidator:
         self.generation_config = {
             'max_length': 400,           
             'min_length': 30,            
-            'do_sample': True,           # Установлено в True
+            'do_sample': True,           
             'temperature': 0.3,          
             'top_p': 0.7,                
             'top_k': 20,                 

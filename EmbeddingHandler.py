@@ -22,16 +22,22 @@ class EmbeddingHandler:
         return self.embedding_model.encode(text, convert_to_tensor=True)
 
 
-    def find_most_relevant_context(self, question, contexts):
+    def find_most_relevant_contexts(self, question, contexts, top_k=1):
         """
-        Находит наиболее релевантный контекст для вопроса.
+        Находит наиболее релевантные контексты для вопроса.
         
         :param question: Вопрос, который нужно связать с контекстом.
         :param contexts: Список контекстов для поиска.
-        :return: Наиболее релевантный контекст.
+        :param top_k: Количество наиболее релевантных контекстов, которые нужно вернуть.
+        :return: Список наиболее релевантных контекстов, отсортированных по релевантности.
         """
+        # Получаем эмбеддинг вопроса
         question_embedding = self.get_text_embedding(question)
+        # Генерируем эмбеддинги для всех контекстов
         context_embeddings = [self.get_text_embedding(ctx) for ctx in contexts]
-        scores = [util.pytorch_cos_sim(question_embedding, ctx_emb) for ctx_emb in context_embeddings]
-        best_idx = torch.argmax(torch.tensor(scores))
-        return contexts[best_idx]
+        # Вычисляем косинусные сходства
+        scores = [util.pytorch_cos_sim(question_embedding, ctx_emb).item() for ctx_emb in context_embeddings]
+        # Сортируем контексты по убыванию сходства
+        top_indices = torch.topk(torch.tensor(scores), min(top_k, len(contexts))).indices
+        # Возвращаем контексты, отсортированные по релевантности
+        return [contexts[idx] for idx in top_indices]

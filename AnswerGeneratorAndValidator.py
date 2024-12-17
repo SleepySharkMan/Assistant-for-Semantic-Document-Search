@@ -48,14 +48,14 @@ class AnswerGeneratorAndValidator:
 
         # Расширенная конфигурация генерации текста
         self.generation_config = {
-        'max_length': 1000,
-        'min_length': 100,
-        'num_return_sequences': 1,
-        'do_sample': True,  
-        'temperature': 0.3,
-        'no_repeat_ngram_size': 3,
-        'num_beams': 1, 
-        'diversity_penalty': 0.0
+            'max_length': 1000,
+            'min_length': 100,
+            'num_return_sequences': 1,
+            'do_sample': True,  
+            'temperature': 0.3,
+            'no_repeat_ngram_size': 3,
+            'num_beams': 1, 
+            'diversity_penalty': 0.0
         }
 
 

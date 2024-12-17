@@ -2,12 +2,7 @@ import re
 from typing import List, Optional
 
 class TextContextSplitter:
-    def split_by_words(
-        self, 
-        content: str, 
-        words_per_context: int, 
-        overlap_words: Optional[int] = None
-    ) -> List[str]:
+    def split_by_words(self, content, words_per_context, overlap_words = None):
         """
         Разделение текста на контексты по определенному количеству слов с возможностью перекрытия
 
@@ -37,12 +32,7 @@ class TextContextSplitter:
 
         return contexts
 
-    def split_by_sentences(
-        self, 
-        content: str, 
-        sentences_per_context: int = 1, 
-        overlap_sentences: Optional[int] = None
-    ) -> List[str]:
+    def split_by_sentences(self, content, sentences_per_context = 1, overlap_sentences = None):
         """
         Разделение текста на контексты по предложениям с возможностью перекрытия
 
@@ -72,12 +62,7 @@ class TextContextSplitter:
 
         return contexts
 
-    def split_by_paragraphs(
-        self, 
-        content: str, 
-        paragraphs_per_context: int = 1, 
-        overlap_lines: Optional[int] = None
-    ) -> List[str]:
+    def split_by_paragraphs(self, content, paragraphs_per_context = 1, overlap_lines = None):
         """
         Разделение текста на контексты по абзацам с частичным перекрытием строк
 

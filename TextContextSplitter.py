@@ -1,5 +1,4 @@
 import re
-from typing import List, Optional
 
 class TextContextSplitter:
     def split_by_words(self, content, words_per_context, overlap_words = None):
@@ -32,6 +31,7 @@ class TextContextSplitter:
 
         return contexts
 
+
     def split_by_sentences(self, content, sentences_per_context = 1, overlap_sentences = None):
         """
         Разделение текста на контексты по предложениям с возможностью перекрытия
@@ -62,44 +62,31 @@ class TextContextSplitter:
 
         return contexts
 
-    def split_by_paragraphs(self, content, paragraphs_per_context = 1, overlap_lines = None):
+
+    def split_by_paragraphs(self, content, paragraphs_per_context=1, overlap_lines=0):
         """
-        Разделение текста на контексты по абзацам с частичным перекрытием строк
+        Разделение текста на контексты по абзацам с возможностью перекрытия строк.
 
         :param content: Текстовое содержимое
-        :param paragraphs_per_context: Количество абзацев в основном контексте
-        :param overlap_lines: Количество перекрывающихся строк в абзацах
+        :param paragraphs_per_context: Количество абзацев в одном контексте
+        :param overlap_lines: Количество строк перекрытия между контекстами
         :return: Список контекстов
         """
-        # Разделяем текст на абзацы
-        paragraphs = re.split(r'\n\s*\n', content)
-        paragraphs = [paragraph.strip() for paragraph in paragraphs if paragraph.strip()]
-
-        # Если перекрытие не указано, устанавливаем его как 1/3 строк абзаца
-        if overlap_lines is None:
-            overlap_lines = 1
-
+        # Разделяем текст на абзацы (учитываем строки перед первым двойным переносом)
+        raw_paragraphs = [p.strip() for p in re.split(r'\n\s*\n', content.strip()) if p.strip()]
         contexts = []
-        
-        # Создаем контексты с частичным перекрытием
-        for i in range(0, len(paragraphs), paragraphs_per_context):
-            # Определяем границы контекста с перекрытием
-            start = max(0, i - paragraphs_per_context)
-            end = min(len(paragraphs), i + paragraphs_per_context + 1)
 
-            # Берем выбранные абзацы
-            selected_paragraphs = paragraphs[start:end]
+        for i in range(0, len(raw_paragraphs), paragraphs_per_context):
+            # Текущие абзацы для контекста
+            current_paragraphs = raw_paragraphs[i:i + paragraphs_per_context]
+            
+            # Добавляем строки перекрытия
+            if i > 0 and overlap_lines > 0:
+                previous_paragraph = raw_paragraphs[i - 1]
+                overlap = '\n'.join(previous_paragraph.split('\n')[-overlap_lines:])
+                current_paragraphs.insert(0, overlap)
 
-            # Для каждого абзаца, кроме первого, обрезаем начало
-            if len(selected_paragraphs) > 1:
-                for j in range(1, len(selected_paragraphs)):
-                    # Разбиваем абзац на строки
-                    lines = selected_paragraphs[j].split('\n')
-                    # Оставляем только последние overlap_lines строк
-                    selected_paragraphs[j] = '\n'.join(lines[-overlap_lines:])
-
-            # Объединяем абзацы
-            context = '\n\n'.join(selected_paragraphs)
-            contexts.append(context)
+            # Формируем контекст
+            contexts.append('\n\n'.join(current_paragraphs))
 
         return contexts

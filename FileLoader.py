@@ -1,7 +1,7 @@
 import os
 import json
 import docx
-import PyPDF2
+import pypdf
 import pandas as pd
 
 class FileLoader:
@@ -211,7 +211,7 @@ class FileLoader:
             
             elif file_ext == '.pdf':
                 with open(file_path, 'rb') as f:
-                    reader = PyPDF2.PdfReader(f)
+                    reader = pypdf.PdfReader(f)
                     text = " ".join([page.extract_text() for page in reader.pages])
                     return text
             

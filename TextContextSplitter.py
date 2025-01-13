@@ -1,7 +1,8 @@
 import re
 
+
 class TextContextSplitter:
-    def split_by_words(self, content, words_per_context, overlap_words = None):
+    def split_by_words(self, content, words_per_context, overlap_words=None):
         """
         Разделение текста на контексты по определенному количеству слов с возможностью перекрытия
 
@@ -18,7 +19,7 @@ class TextContextSplitter:
         words = content.split()
         contexts = []
 
-        # Определяем шаг смещения 
+        # Определяем шаг смещения
         step = words_per_context - overlap_words
 
         for i in range(0, len(words), step):
@@ -31,8 +32,7 @@ class TextContextSplitter:
 
         return contexts
 
-
-    def split_by_sentences(self, content, sentences_per_context = 1, overlap_sentences = None):
+    def split_by_sentences(self, content, sentences_per_context=1, overlap_sentences=None):
         """
         Разделение текста на контексты по предложениям с возможностью перекрытия
 
@@ -43,25 +43,26 @@ class TextContextSplitter:
         """
         # Разделяем текст на предложения
         sentences = re.split(r'(?<=[.!?])\s+', content)
-        sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
+        sentences = [sentence.strip()
+                     for sentence in sentences if sentence.strip()]
 
         # Если перекрытие не указано, устанавливаем его как 1 предложение
         if overlap_sentences is None:
             overlap_sentences = 1
 
         contexts = []
-        
+
         # Создаем контексты с перекрытием
         for i in range(0, len(sentences), sentences_per_context):
             # Определяем границы контекста с перекрытием
             start = max(0, i - overlap_sentences)
-            end = min(len(sentences), i + sentences_per_context + overlap_sentences)
+            end = min(len(sentences), i +
+                      sentences_per_context + overlap_sentences)
 
             context = ' '.join(sentences[start:end])
             contexts.append(context)
 
         return contexts
-
 
     def split_by_paragraphs(self, content, paragraphs_per_context=1, overlap_lines=0):
         """
@@ -73,17 +74,19 @@ class TextContextSplitter:
         :return: Список контекстов
         """
         # Разделяем текст на абзацы (учитываем строки перед первым двойным переносом)
-        raw_paragraphs = [p.strip() for p in re.split(r'\n\s*\n', content.strip()) if p.strip()]
+        raw_paragraphs = [p.strip() for p in re.split(
+            r'\n\s*\n', content.strip()) if p.strip()]
         contexts = []
 
         for i in range(0, len(raw_paragraphs), paragraphs_per_context):
             # Текущие абзацы для контекста
             current_paragraphs = raw_paragraphs[i:i + paragraphs_per_context]
-            
+
             # Добавляем строки перекрытия
             if i > 0 and overlap_lines > 0:
                 previous_paragraph = raw_paragraphs[i - 1]
-                overlap = '\n'.join(previous_paragraph.split('\n')[-overlap_lines:])
+                overlap = '\n'.join(
+                    previous_paragraph.split('\n')[-overlap_lines:])
                 current_paragraphs.insert(0, overlap)
 
             # Формируем контекст

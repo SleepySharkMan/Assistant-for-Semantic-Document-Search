@@ -1,27 +1,30 @@
 import torch
 from transformers import (
-    AutoTokenizer, 
-    AutoModelForQuestionAnswering, 
-    AutoModelForCausalLM, 
-    pipeline, 
+    AutoTokenizer,
+    AutoModelForQuestionAnswering,
+    AutoModelForCausalLM,
+    pipeline,
     BitsAndBytesConfig
 )
 import re
+
 
 class AnswerGeneratorAndValidator:
     def __init__(self, qa_model_path, model_path):
         """
         Инициализация моделей для вопросов и ответов, генерации текста и проверки контекста.
-        
+
         :param qa_model_path: Путь к модели для вопросов и ответов.
         :param model_path: Путь к модели для генерации текста.
         """
         # Устройство: GPU (если доступно) или CPU
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
 
         # Модель для вопросов и ответов (QA)
         self.qa_tokenizer = AutoTokenizer.from_pretrained(qa_model_path)
-        self.qa_model = AutoModelForQuestionAnswering.from_pretrained(qa_model_path).to(self.device)
+        self.qa_model = AutoModelForQuestionAnswering.from_pretrained(
+            qa_model_path).to(self.device)
         self.qa_pipeline = pipeline(
             "question-answering",
             model=self.qa_model,
@@ -51,13 +54,12 @@ class AnswerGeneratorAndValidator:
             'max_length': 1000,
             'min_length': 100,
             'num_return_sequences': 1,
-            'do_sample': True,  
+            'do_sample': True,
             'temperature': 0.3,
             'no_repeat_ngram_size': 3,
-            'num_beams': 1, 
+            'num_beams': 1,
             'diversity_penalty': 0.0
         }
-
 
     def configure_model(self, **kwargs):
         """
@@ -81,12 +83,12 @@ class AnswerGeneratorAndValidator:
 
             min_val, max_val = param_constraints[key]
             if not (min_val <= value <= max_val):
-                raise ValueError(f"{key} должен быть в диапазоне {min_val}-{max_val}")
+                raise ValueError(f"{key} должен быть в диапазоне {
+                                 min_val}-{max_val}")
 
             self.generation_config[key] = value
-        
-        return self
 
+        return self
 
     def find_answer(self, contexts, question):
         """
@@ -96,16 +98,17 @@ class AnswerGeneratorAndValidator:
 
         for context in contexts:
             try:
-                qa_result = self.qa_pipeline(question=question, context=context)
+                qa_result = self.qa_pipeline(
+                    question=question, context=context)
                 extracted_answer = qa_result['answer']
                 confidence = qa_result.get('score', 0)
 
                 # Более мягкие критерии отбора ответов
-                if (len(extracted_answer) >= 3 and 
-                    extracted_answer.lower() in context.lower()):
+                if (len(extracted_answer) >= 3 and
+                        extracted_answer.lower() in context.lower()):
                     best_answers.append({
-                        'answer': extracted_answer, 
-                        'confidence': confidence, 
+                        'answer': extracted_answer,
+                        'confidence': confidence,
                         'context': context
                     })
             except Exception as e:
@@ -114,26 +117,25 @@ class AnswerGeneratorAndValidator:
         # Сортировка ответов по confidence
         if best_answers:
             best_answers.sort(key=lambda x: x['confidence'], reverse=True)
-            
+
             # Возвращаем наиболее полный ответ
             full_answer = best_answers[0]['answer']
-            
+
             # Если ответ слишком короткий, пытаемся расширить из контекста
             if len(full_answer) < 10:
                 context = best_answers[0]['context']
                 sentences = re.findall(r'[^.!?]+[.!?]', context)
                 matching_sentences = [
-                    s for s in sentences 
+                    s for s in sentences
                     if full_answer.lower() in s.lower()
                 ]
-                
+
                 if matching_sentences:
                     full_answer = matching_sentences[0].strip()
 
             return full_answer
 
         return "Не удалось найти релевантный ответ в предоставленных контекстах."
-
 
     def generate_human_readable_text(self, question, answer, context=None):
         """
@@ -154,13 +156,14 @@ class AnswerGeneratorAndValidator:
 
         Подробное объяснение:
         """
-        
+
         try:
-            inputs = self.text_tokenizer(prompt, return_tensors="pt").to(self.device)
-            
+            inputs = self.text_tokenizer(
+                prompt, return_tensors="pt").to(self.device)
+
             # Упрощенная генерация с четкими параметрами
             outputs = self.text_model.generate(
-                input_ids=inputs['input_ids'], 
+                input_ids=inputs['input_ids'],
                 attention_mask=inputs['attention_mask'],
                 max_length=500,
                 min_length=100,
@@ -169,21 +172,22 @@ class AnswerGeneratorAndValidator:
                 num_return_sequences=1,
                 no_repeat_ngram_size=2
             )
-            
-            generated_text = self.text_tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
+
+            generated_text = self.text_tokenizer.decode(
+                outputs[0], skip_special_tokens=True)
+
             # Извлечение только сгенерированной части
             explanation = generated_text[len(prompt):].strip()
-            
+
             # Постобработка текста
-            explanation = self._enhance_explanation(explanation, answer, context)
-            
+            explanation = self._enhance_explanation(
+                explanation, answer, context)
+
             return explanation
-        
+
         except Exception as e:
             print(f"Ошибка при генерации текста: {e}")
             return f"Не удалось сгенерировать подробный ответ. Техническая информация: {str(e)}"
-
 
     def _enhance_explanation(self, text, answer, context):
         """
@@ -193,15 +197,15 @@ class AnswerGeneratorAndValidator:
         if len(text) < 50 and context:
             context_text = context[0] if isinstance(context, list) else context
             text += " " + context_text[:500]  # Добавляем часть контекста
-        
+
         # Удаление повторов и незавершенных предложений
         text = re.sub(r'(.+?)\1+', r'\1', text)
         text = re.sub(r'\s+', ' ', text).strip()
-        
+
         # Убеждаемся, что ответ упоминается
         if answer.lower() not in text.lower():
             text = f"{answer}. {text}"
-        
+
         return text
 
     def generate_human_readable_text_without_answer(self, question, context=None):
@@ -220,12 +224,13 @@ class AnswerGeneratorAndValidator:
 
         Подробный ответ:
         """
-        
+
         try:
-            inputs = self.text_tokenizer(prompt, return_tensors="pt").to(self.device)
-            
+            inputs = self.text_tokenizer(
+                prompt, return_tensors="pt").to(self.device)
+
             outputs = self.text_model.generate(
-                input_ids=inputs['input_ids'], 
+                input_ids=inputs['input_ids'],
                 attention_mask=inputs['attention_mask'],
                 max_length=500,
                 min_length=100,
@@ -234,15 +239,16 @@ class AnswerGeneratorAndValidator:
                 num_return_sequences=1,
                 no_repeat_ngram_size=2
             )
-            
-            generated_text = self.text_tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            generated_text = self.text_tokenizer.decode(
+                outputs[0], skip_special_tokens=True)
             explanation = generated_text[len(prompt):].strip()
-            
+
             # Постобработка текста
             explanation = self._enhance_explanation(explanation, "", context)
-            
+
             return explanation
-        
+
         except Exception as e:
             print(f"Ошибка при генерации текста: {e}")
             return f"Не удалось сгенерировать подробный ответ. Техническая информация: {str(e)}"

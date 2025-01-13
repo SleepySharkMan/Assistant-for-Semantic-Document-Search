@@ -4,6 +4,7 @@ import tempfile
 import pandas as pd
 from FileLoader import FileLoader
 
+
 @pytest.fixture
 def temp_dir():
     """Создание временной директории для тестовых файлов"""
@@ -40,7 +41,8 @@ def test_init():
     """Тест инициализации класса"""
     # Тест с дефолтными форматами
     loader = FileLoader()
-    assert sorted(loader.get_allowed_formats()) == sorted(['.txt', '.pdf', '.docx', '.csv', '.xlsx'])
+    assert sorted(loader.get_allowed_formats()) == sorted(
+        ['.txt', '.pdf', '.docx', '.csv', '.xlsx'])
 
     # Тест с пользовательскими форматами
     custom_formats = ['.json', '.xml']
@@ -75,7 +77,8 @@ def test_remove_allowed_format(loader):
     formats = loader.get_allowed_formats()
     for fmt in formats[:-1]:  # Оставляем последний формат
         assert loader.remove_allowed_format(fmt) is True
-    assert loader.remove_allowed_format(formats[-1]) is False  # Не должны иметь возможность удалить последний формат
+    # Не должны иметь возможность удалить последний формат
+    assert loader.remove_allowed_format(formats[-1]) is False
 
 
 def test_add_file(loader, sample_files):
@@ -105,7 +108,7 @@ def test_remove_file(loader, sample_files):
     """Тест удаления файла"""
     # Сначала добавляем файл
     loader.add_file(sample_files['txt'])
-    
+
     # Удаление существующего файла
     assert loader.remove_file(sample_files['txt']) is True
     assert sample_files['txt'] not in loader.get_file_list()
@@ -118,7 +121,7 @@ def test_remove_files_from_folder(loader, sample_files):
     """Тест удаления файлов из папки"""
     # Сначала добавляем файлы
     loader.add_files_from_folder(sample_files['dir'])
-    
+
     # Удаление файлов из папки
     removed = loader.remove_files_from_folder(sample_files['dir'])
     assert removed == 2

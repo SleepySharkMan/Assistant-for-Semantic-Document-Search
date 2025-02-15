@@ -15,15 +15,15 @@ if __name__ == "__main__":
 
     # Инициализация классов
     t1 = time.time()
-    
+
     # Инициализация ассистента с настройками
     assistant = AG.AnswerGeneratorAndValidator(qa_model_path, text_model_path)
     assistant.set_generation_mode(GenerationMode.DETERMINISTIC)
-    
+
     embedding_handler = EH.EmbeddingHandler(embedding_model_path)
     file_loader = FL.FileLoader()
     splitter = TC.TextContextSplitter()
-    
+
     print("\nКонфигурация системы:")
     print(f"Устройство: {assistant.get_device_info()}")
     print(f"Режим генерации: {assistant.generation_mode.name}")
@@ -33,27 +33,27 @@ if __name__ == "__main__":
     t2 = time.time()
     text_file_path = 'D:\\Assistant-for-Semantic-Document-Search\\Новый текстовый документ.txt'
     folder_path = 'D:\\Assistant-for-Semantic-Document-Search\\documents'
-    
+
     file_loader.add_file(text_file_path)
     added_count = file_loader.add_files_from_folder(folder_path)
-    
+
     print(f"\nЗагружено файлов: {added_count + 1}")
     print(f"Время загрузки файлов: {time.time() - t2:.2f} секунд")
 
     # Обработка контента
     t3 = time.time()
     combined_content = "".join(
-        file_loader.get_file_content(file) 
+        file_loader.get_file_content(file)
         for file in file_loader.get_file_list()
     )
-    
+
     # Разделение на контексты
     knowledge_base = splitter.split_by_paragraphs(
-        content=combined_content, 
-        paragraphs_per_context=1, 
+        content=combined_content,
+        paragraphs_per_context=1,
         overlap_lines=1
     )
-    
+
     print(f"\nОбработано контекстов: {len(knowledge_base)}")
     print(f"Время обработки контента: {time.time() - t3:.2f} секунд")
 
@@ -94,13 +94,13 @@ if __name__ == "__main__":
             question, knowledge_base, 1
         )
         print(f"Релевантный контекст найден за: {time.time() - t4:.2f} сек")
-        
+
         # Извлечение ответа
         t5 = time.time()
         answer = assistant.find_answer(relevant_context, question)
         print(f"\nБазовый ответ: {answer}")
         print(f"Время извлечения ответа: {time.time() - t5:.2f} сек")
-        
+
         # Генерация полного ответа
         t6 = time.time()
         full_answer = assistant.generate_response(
@@ -111,7 +111,7 @@ if __name__ == "__main__":
             Вопрос: {question}""")
         print(f"\nПолный ответ:\n{full_answer}")
         print(f"Время генерации ответа: {time.time() - t6:.2f} сек")
-        
+
     except Exception as e:
         print(f"\nОшибка обработки: {str(e)}")
 

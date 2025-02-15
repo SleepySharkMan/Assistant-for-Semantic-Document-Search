@@ -11,11 +11,12 @@ from vosk import Model, KaldiRecognizer
 from gtts import gTTS
 from pydub import AudioSegment
 
+
 class SpeechProcessor:
     def __init__(self, model_path, language='ru', mode='auto'):
         """
         Инициализация обработчика речи.
-        
+
         :param language: Язык ('ru')
         :param mode: Режим работы ('auto', 'online', 'offline')
         :param model_path: Путь к модели Vosk для русского языка
@@ -33,13 +34,14 @@ class SpeechProcessor:
         """Устанавливает голос для синтеза речи."""
         voices = self.engine.getProperty('voices')
         target_voice = 'russian' if language == 'ru' else 'english'
-        
+
         for voice in voices:
             if target_voice in voice.name.lower():
                 self.engine.setProperty('voice', voice.id)
                 return
-        
-        print(f"Предупреждение: Голос для языка '{language}' не найден. Установите RHVoice для русского языка.")
+
+        print(
+            f"Предупреждение: Голос для языка '{language}' не найден. Установите RHVoice для русского языка.")
 
     def check_internet(self):
         """Проверяет подключение к интернету."""
@@ -97,11 +99,12 @@ class SpeechProcessor:
             # Оффлайн-распознавание через Vosk
             audio_bytes.seek(0)
             wf = wave.open(audio_bytes, "rb")
-            if not (wf.getnchannels() == 1 and 
-                    wf.getsampwidth() == 2 and 
+            if not (wf.getnchannels() == 1 and
+                    wf.getsampwidth() == 2 and
                     wf.getframerate() in (8000, 16000)):
-                raise ValueError("Аудио должно быть в формате WAV: 1 канал, 16 бит, 8/16 кГц")
-            
+                raise ValueError(
+                    "Аудио должно быть в формате WAV: 1 канал, 16 бит, 8/16 кГц")
+
             recognizer = KaldiRecognizer(self.vosk_model, wf.getframerate())
             result = []
             while True:
@@ -110,9 +113,10 @@ class SpeechProcessor:
                     break
                 if recognizer.AcceptWaveform(data):
                     result.append(json.loads(recognizer.Result())['text'])
-            
+
             result.append(json.loads(recognizer.FinalResult())['text'])
             return ' '.join(result)
+
 
 if __name__ == "__main__":
     # Пример использования

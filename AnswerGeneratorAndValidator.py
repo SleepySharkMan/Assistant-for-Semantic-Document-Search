@@ -9,31 +9,33 @@ from transformers import (
 )
 import re
 
+
 class GenerationMode(Enum):
     DETERMINISTIC = "deterministic"
     STOCHASTIC = "stochastic"
 
+
 class QuantizationMode(Enum):
     """
     Режимы квантования для оптимизации размера модели и скорости выполнения
-    
+
     Параметры:
     -----------
     FP32 : 
         - Память: ~28 ГБ (7B параметров)
         - Описание: 32-битная точность (стандартный формат), максимальная точность вычислений
         - Использование: Для задач, требующих высокой точности, без ограничений по памяти
-        
+
     FP16 : 
         - Память: ~14 ГБ (7B параметров)
         - Описание: 16-битная точность, оптимальный баланс скорости и точности
         - Использование: Основной выбор для GPU, ускоряет вычисления в 2-3 раза
-        
+
     INT8 : 
         - Память: ~7 ГБ (7B параметров)
         - Описание: 8-битное целочисленное квантование
         - Использование: Для CPU, мобильных устройств или слабых GPU
-        
+
     NF4 : 
         - Память: ~3.5 ГБ (7B параметров)
         - Описание: 4-битное нормализованное квантование
@@ -50,11 +52,12 @@ class QuantizationMode(Enum):
        - CUDA-совместимый GPU (NVIDIA)
        - Библиотеки типа `bitsandbytes`
     """
-    
+
     FP32 = "fp32"
     FP16 = "fp16"
     INT8 = "int8"
     NF4 = "nf4"
+
 
 class AnswerGeneratorAndValidator:
     def __init__(self, qa_model_path, text_model_path):
@@ -70,7 +73,8 @@ class AnswerGeneratorAndValidator:
         """Обнаружение доступных устройств"""
         self.available_gpus = []
         if torch.cuda.is_available():
-            self.available_gpus = [f"cuda:{i}" for i in range(torch.cuda.device_count())]
+            self.available_gpus = [
+                f"cuda:{i}" for i in range(torch.cuda.device_count())]
         self.available_devices = self.available_gpus + ["cpu"]
 
     def switch_to_cpu(self):
@@ -95,7 +99,8 @@ class AnswerGeneratorAndValidator:
     def _init_quantization(self):
         """Автоматический выбор квантования"""
         if self.device.type == "cuda":
-            mem_gb = torch.cuda.get_device_properties(self.device).total_memory / 1e9
+            mem_gb = torch.cuda.get_device_properties(
+                self.device).total_memory / 1e9
             self.quantization = QuantizationMode.NF4 if mem_gb >= 8 else QuantizationMode.INT8
         else:
             self.quantization = QuantizationMode.FP32
@@ -111,7 +116,8 @@ class AnswerGeneratorAndValidator:
         """Загрузка моделей с учетом текущих настроек"""
         # Загрузка QA модели
         self.qa_tokenizer = AutoTokenizer.from_pretrained(qa_path)
-        self.qa_model = AutoModelForQuestionAnswering.from_pretrained(qa_path).to(self.device)
+        self.qa_model = AutoModelForQuestionAnswering.from_pretrained(
+            qa_path).to(self.device)
         self.qa_pipeline = pipeline(
             "question-answering",
             model=self.qa_model,
@@ -120,7 +126,8 @@ class AnswerGeneratorAndValidator:
         )
 
         # Конфигурация генеративной модели
-        compute_dtype = torch.float16 if self.quantization in [QuantizationMode.FP16, QuantizationMode.NF4] else torch.float32
+        compute_dtype = torch.float16 if self.quantization in [
+            QuantizationMode.FP16, QuantizationMode.NF4] else torch.float32
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=self.quantization == QuantizationMode.NF4,
             load_in_8bit=self.quantization == QuantizationMode.INT8,
@@ -140,7 +147,8 @@ class AnswerGeneratorAndValidator:
     def _reinitialize_models(self):
         """Переинициализация моделей при изменении настроек"""
         self._init_quantization()
-        self._load_models(self.qa_model.name_or_path, self.text_model.name_or_path)
+        self._load_models(self.qa_model.name_or_path,
+                          self.text_model.name_or_path)
         self._configure_generation()
 
     def _configure_generation(self):
@@ -160,11 +168,11 @@ class AnswerGeneratorAndValidator:
             self.generation_config = {
                 **base_params,
                 'do_sample': False,
-                'num_beams': 6,        
-                'length_penalty': 0.9, 
+                'num_beams': 6,
+                'length_penalty': 0.9,
                 'no_repeat_ngram_size': 4
             }
-        
+
         # Стохастический режим (сэмплирование)
         else:
             self.generation_config = {
@@ -186,11 +194,12 @@ class AnswerGeneratorAndValidator:
 
     def _adjust_max_length(self, prompt):
         """Динамически увеличивает max_length в зависимости от длины входного текста."""
-        prompt_tokens = len(self.text_tokenizer.encode(prompt, add_special_tokens=False))  
+        prompt_tokens = len(self.text_tokenizer.encode(
+            prompt, add_special_tokens=False))
         min_length = 4096
-        new_max_length = min(4096, max(min_length, int(2.5 * prompt_tokens))) 
+        new_max_length = min(4096, max(min_length, int(2.5 * prompt_tokens)))
 
-        self.generation_config['max_length'] = new_max_length  
+        self.generation_config['max_length'] = new_max_length
 
     def set_generation_mode(self, mode: GenerationMode):
         """Установка режима генерации"""
@@ -211,38 +220,41 @@ class AnswerGeneratorAndValidator:
                     })
             except Exception as e:
                 print(f"Ошибка обработки контекста: {str(e)}")
-        
+
         if not best_answers:
             return "Ответ не найден"
-        
+
         best_answers.sort(key=lambda x: x['score'], reverse=True)
         best = best_answers[0]
-        
+
         # Расширение коротких ответов
         if len(best['answer']) < 10:
             sentences = re.findall(r'[^.!?]*[.!?]', best['context'])
-            matches = [s.strip() for s in sentences if best['answer'].lower() in s.lower()]
+            matches = [s.strip()
+                       for s in sentences if best['answer'].lower() in s.lower()]
             if matches:
                 best['answer'] = max(matches, key=len)
-        
+
         return best['answer']
 
     def generate_response(self, prompt, context=None):
         """Генерация текста с улучшенной постобработкой"""
         try:
             self._adjust_max_length(prompt)
-            inputs = self.text_tokenizer(prompt, return_tensors="pt").to(self.device)
-            
+            inputs = self.text_tokenizer(
+                prompt, return_tensors="pt").to(self.device)
+
             outputs = self.text_model.generate(
                 inputs.input_ids,
                 attention_mask=inputs.attention_mask,
                 **self.generation_config
             )
-            
-            raw_answer = self.text_tokenizer.decode(outputs[0], skip_special_tokens=True)
-  
+
+            raw_answer = self.text_tokenizer.decode(
+                outputs[0], skip_special_tokens=True)
+
             return raw_answer[len(prompt):].strip()
-            
+
         except Exception as e:
             print(f"Ошибка генерации: {str(e)}")
             return ""

@@ -3,63 +3,61 @@ import AnswerGeneratorAndValidator as AG
 import EmbeddingHandler as EH
 import FileLoader as FL
 import TextContextSplitter as TC
+from AnswerGeneratorAndValidator import GenerationMode, QuantizationMode
 
 if __name__ == "__main__":
     start_time = time.time()
 
-    # Путь к модели для вопросов и ответов
+    # Пути к моделям
     qa_model_path = "models\\mdeberta-v3-base-squad2"
-    text_model_path = "models\\vicuna-7b-v1.5"  # Путь к модели для генерации текста
-    # Путь к модели для создания эмбеддингов
+    text_model_path = "models\\vicuna-7b-v1.5"
     embedding_model_path = "models\\paraphrase-multilingual-MiniLM-L12-v2"
 
     # Инициализация классов
     t1 = time.time()
+    
+    # Инициализация ассистента с настройками
     assistant = AG.AnswerGeneratorAndValidator(qa_model_path, text_model_path)
+    assistant.set_generation_mode(GenerationMode.DETERMINISTIC)
+    
     embedding_handler = EH.EmbeddingHandler(embedding_model_path)
     file_loader = FL.FileLoader()
     splitter = TC.TextContextSplitter()
+    
+    print("\nКонфигурация системы:")
+    print(f"Устройство: {assistant.get_device_info()}")
+    print(f"Режим генерации: {assistant.generation_mode.name}")
     print(f"Инициализация классов: {time.time() - t1:.2f} секунд")
 
-    # Добавляем отдельный текстовый файл
+    # Загрузка файлов
     t2 = time.time()
     text_file_path = 'D:\\Assistant-for-Semantic-Document-Search\\Новый текстовый документ.txt'
-    if file_loader.add_file(text_file_path):
-        print(f"Файл {text_file_path} успешно добавлен")
-    print(f"Добавление отдельного файла: {time.time() - t2:.2f} секунд")
-
-    # Добавляем файлы из указанной папки
-    t3 = time.time()
     folder_path = 'D:\\Assistant-for-Semantic-Document-Search\\documents'
+    
+    file_loader.add_file(text_file_path)
     added_count = file_loader.add_files_from_folder(folder_path)
-    print(f"Из папки '{folder_path}' добавлено {added_count} файлов")
-    print(f"Добавление файлов из папки: {time.time() - t3:.2f} секунд")
+    
+    print(f"\nЗагружено файлов: {added_count + 1}")
+    print(f"Время загрузки файлов: {time.time() - t2:.2f} секунд")
 
-    t4 = time.time()
-    combined_content = ""
-    for file in file_loader.get_file_list():
-        content = file_loader.get_file_content(file)
-        if content:
-            combined_content += content
-    print(f"Объединение содержимого файлов: {time.time() - t4:.2f} секунд")
-
-    # Делим текст на абзацы с перекрытием в 1 строку
-    t5 = time.time()
+    # Обработка контента
+    t3 = time.time()
+    combined_content = "".join(
+        file_loader.get_file_content(file) 
+        for file in file_loader.get_file_list()
+    )
+    
+    # Разделение на контексты
     knowledge_base = splitter.split_by_paragraphs(
-        content=combined_content, paragraphs_per_context=1, overlap_lines=1)
-    print(f"Разделение текста на контексты: {time.time() - t5:.2f} секунд")
+        content=combined_content, 
+        paragraphs_per_context=1, 
+        overlap_lines=1
+    )
+    
+    print(f"\nОбработано контекстов: {len(knowledge_base)}")
+    print(f"Время обработки контента: {time.time() - t3:.2f} секунд")
 
-    # # Делим текст на предложения с перекрытием в 1 предложение
-    # knowledge_base = splitter.split_by_sentences(content=combined_content, sentences_per_context=2, overlap_sentences=1)
-
-    # # Делим текст на слова с перекрытием
-    # knowledge_base = splitter.split_by_words(content=combined_content, words_per_context=10, overlap_words=3)
-
-    # print("Контексты:")
-    # for i, context in enumerate(knowledge_base):
-    #     print(f"\nКонтекст {i + 1}:\n{context}")
-
-    # Вопросы
+    # Список вопросов
     questions = [
         # Вопросы о мармеладе
         "Какое происхождение имеет название 'мармелад' и из какого фрукта он изначально изготавливался?",  # 0
@@ -83,41 +81,42 @@ if __name__ == "__main__":
         "Какое значение имеет натуральный состав мороженого?"  # 14
     ]
 
-    # Вопрос
+    # Обработка вопроса
     question = questions[3]
-    print(f"Вопрос:\n{question}")
-    print("-------------------------")
+    print(f"\nВопрос:\n{question}")
+    print("─" * 50)
 
-    # Поиск наиболее релевантного контекста
-    t6 = time.time()
-    relevant_context = embedding_handler.find_most_relevant_contexts(
-        question, knowledge_base, 1)
-    print(f"Поиск релевантного контекста: {time.time() - t6:.2f} секунд")
-    print(f"Релевантный контекст:\n{relevant_context}")
-    print("-------------------------")
+    # Поиск контекста и генерация ответа
+    try:
+        # Поиск релевантного контекста
+        t4 = time.time()
+        relevant_context = embedding_handler.find_most_relevant_contexts(
+            question, knowledge_base, 1
+        )
+        print(f"Релевантный контекст найден за: {time.time() - t4:.2f} сек")
+        
+        # Извлечение ответа
+        t5 = time.time()
+        answer = assistant.find_answer(relevant_context, question)
+        print(f"\nБазовый ответ: {answer}")
+        print(f"Время извлечения ответа: {time.time() - t5:.2f} сек")
+        
+        # Генерация полного ответа
+        t6 = time.time()
+        full_answer = assistant.generate_response(
+            prompt=f"""Сформулируй развернутый ответ на русском языке, используя:
+            - Контекст: {relevant_context} 
+            - Собственные знания (не ограничивайся контекстом)
+            Ответ должен быть структурированным и содержать примеры, даже если их нет в контексте.
+            Вопрос: {question}""")
+        print(f"\nПолный ответ:\n{full_answer}")
+        print(f"Время генерации ответа: {time.time() - t6:.2f} сек")
+        
+    except Exception as e:
+        print(f"\nОшибка обработки: {str(e)}")
 
-    # Поиск ответа
-    t7 = time.time()
-    answer = assistant.find_answer(relevant_context, question)
-    print(f"Поиск ответа: {time.time() - t7:.2f} секунд")
-    print(f"Ответ:\n{answer}")
-    print("-------------------------")
-
-    # Генерация финального ответа
-    t8 = time.time()
-    readable_answer = assistant.generate_human_readable_text(
-        question, answer, relevant_context)
-    print(f"Генерация финального ответа: {time.time() - t8:.2f} секунд")
-    print(f"Конечный ответ:\n{readable_answer}")
-    print("-------------------------")
-
-    t9 = time.time()
-    readable_answer_without_answer = assistant.generate_human_readable_text_without_answer(
-        question, relevant_context)
-    print(f"Генерация финального ответа, без поиска ответа: {
-          time.time() - t9:.2f} секунд")
-    print(f"Конечный ответ, без поиска ответа:\n{
-          readable_answer_without_answer}")
-
+    # Итоговая информация
     total_time = time.time() - start_time
+    print("\n" + "═" * 50)
     print(f"Общее время выполнения: {total_time:.2f} секунд")
+    print(f"Используемое устройство: {assistant.get_device_info()}")

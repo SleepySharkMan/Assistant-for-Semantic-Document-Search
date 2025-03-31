@@ -115,15 +115,14 @@ class MainProcessor:
                     matches.append((metadata["content"], score))
 
             if not matches:
-                print("Нет релевантных контекстов")
+                print("К сожаленияю, я не знаю ответа на ваш вопрос")
                 return
 
             print("\nСовпадения:")
             for i, (ctx, score) in enumerate(matches, 1):
                 print(f"{i}. ({score:.2f}) {ctx[:200]}...")
 
-            best_context = matches[0][0]
-            prompt = f"Контекст:\n{best_context.strip()}\n\nВопрос: {question.strip()}\nОтвет:"
+            prompt = f"Контекст:\n{matches}\n\nВопрос: {question.strip()}\nОтвет:"
             answer = self.answer_generator.generate_response(prompt)
             print(f"\nОтвет: {answer}")
 

@@ -1,0 +1,34 @@
+import torch
+from PIL import Image
+
+from transformers import BlipProcessor
+from transformers import BlipForConditionalGeneration
+
+from pathlib import Path
+from typing import Union
+
+from config_models import ImageCaptioningConfig
+
+
+class ImageCaptioner:
+    def __init__(self, config: ImageCaptioningConfig):
+        self.config = config
+        self.device = torch.device(self.config.device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.model_name = self.config.model_name
+
+        self.processor = BlipProcessor.from_pretrained(self.model_name)
+        self.model = BlipForConditionalGeneration.from_pretrained(self.model_name).to(self.device)
+
+    def update_config(self, new_config: ImageCaptioningConfig):
+        self.config = new_config
+        self.__init__(new_config)
+
+    def extract_text(self, image_path: Union[str, Path]) -> str:
+        try:
+            image = Image.open(image_path).convert("RGB")
+            inputs = self.processor(images=image, return_tensors="pt").to(self.device)
+            out = self.model.generate(**inputs)
+            return self.processor.decode(out[0], skip_special_tokens=True).strip()
+        except Exception as e:
+            print(f"Ошибка генерации описания изображения: {e}")
+            return ""

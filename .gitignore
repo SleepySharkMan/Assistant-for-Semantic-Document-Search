@@ -1,4 +1,20 @@
-models/*
+# Python
+__pycache__/
+*.py[cod]
+.env
 asfds/*
+env/
 
-/__pycache__
+# Данные и модели
+models/*
+documents/
+static/audio/*
+chroma_db/*
+
+# Логи и временные файлы
+logs/*.log
+*.tmp
+
+# IDE
+.vscode/
+.idea/

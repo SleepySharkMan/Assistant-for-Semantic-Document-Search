@@ -1,0 +1,73 @@
+# === Основные параметры системы ===
+device: "cuda:0"  # Устройство для запуска моделей: "cpu" или "cuda:0"
+quantization: "nf4"  # Режим квантования: fp32, fp16, int8, nf4
+generation_mode: "stochastic"  # Режим генерации текста: deterministic или stochastic
+
+# === Пути к моделям ===
+models:
+  qa: "models/mdeberta-v3-base-squad2"  # Модель для задач вопрос-ответ
+  text: "models/vicuna-7b-v1.5"  # Модель для генерации текста (causal LM)
+  embedding: "models/paraphrase-multilingual-MiniLM-L12-v2"  # Модель для получения эмбеддингов
+  vosk: "models/vosk-model-small-ru-0.22"  # Модель распознавания речи (Vosk)
+
+# === Допустимые форматы файлов ===
+allowed_formats:
+  - ".txt"
+  - ".pdf"
+  - ".docx"
+  - ".csv"
+  - ".xlsx"
+
+# === Настройки нарезки текста ===
+text_splitter:
+  words_per_context: 150  # Кол-во слов в одном фрагменте
+  overlap_words: 50  # Перекрытие по словам между фрагментами
+  sentences_per_context: 3  # Кол-во предложений в одном фрагменте
+  overlap_sentences: 1  # Перекрытие по предложениям
+  paragraphs_per_context: 2  # Кол-во абзацев в одном фрагменте
+  overlap_lines: 1  # Перекрытие по строкам (абзацы)
+
+# === Хранилище эмбеддингов ===
+embedding_storage:
+  db_path: "chroma_db"  # Путь к директории хранения базы Chroma
+  collection_name: "embeddings"  # Название коллекции эмбеддингов
+  embedding_dim: 384  # Размерность эмбеддинга, должна совпадать с моделью
+
+# === Хранилище метаданных ===
+file_metadata_db:
+  db_path: "file_metadata.db"  # SQLite-файл для хранения информации о файлах
+
+# === Распознавание речи ===
+speech:
+  language: "ru"  # Язык аудио (например, ru, en)
+  mode: "auto"  # Режим работы: auto, online, offline
+
+# === Описание изображений ===
+image_captioning:
+  device: "cuda"  # Устройство для модели BLIP
+  model_name: "Salesforce/blip-image-captioning-base"  # Модель генерации описаний изображений
+
+# === Управление документами ===
+document_manager:
+  image_enabled: true  # Включить обработку изображений в документах
+
+# === Параметры генерации текста ===
+generation_config:
+  max_length: 2048  # Максимальное число токенов в ответе
+  min_length: 300  # Минимальное число токенов в ответе
+  num_return_sequences: 1  # Сколько вариантов ответа возвращать
+  no_repeat_ngram_size: 3  # Ограничение на повторяемость n-грамм
+  repetition_penalty: 1.1  # Штраф за повтор
+  early_stopping: false  # Остановить генерацию, если достигнута высокая уверенность
+
+  deterministic:
+    num_beams: 6  # Кол-во лучей для beam search
+    length_penalty: 0.9  # Штраф за длину
+    no_repeat_ngram_size: 4  # Блокировка повторов в beam search
+
+  stochastic:
+    temperature: 0.9  # Температура сэмплирования
+    top_p: 0.7  # Top-p sampling (nucleus)
+    top_k: 30  # Top-k sampling
+    typical_p: 0.9  # Typical decoding
+    num_beams: 1  # Отключённый beam search

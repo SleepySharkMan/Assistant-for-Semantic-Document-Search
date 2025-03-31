@@ -122,7 +122,14 @@ class MainProcessor:
             for i, (ctx, score) in enumerate(matches, 1):
                 print(f"{i}. ({score:.2f}) {ctx[:200]}...")
 
-            prompt = f"Контекст:\n{matches}\n\nВопрос: {question.strip()}\nОтвет:"
+            prompt = (
+                f"Ты — интеллектуальный ассистент, отвечающий на вопросы на основе приведённой информации.\n"
+                f"Используй только контексты ниже.\n\n"
+                f"Контексты:\n{matches}\n\n"
+                f"Вопрос: {question.strip()}\n"
+                f"Дай точный, понятный и краткий ответ на основе контекста.\n"
+                f"Ответ:"
+            )
             answer = self.answer_generator.generate_response(prompt)
             print(f"\nОтвет: {answer}")
 

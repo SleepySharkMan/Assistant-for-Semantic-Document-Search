@@ -110,12 +110,12 @@ class MainProcessor:
                 if result is None:
                     continue
 
-                embedding, metadata = result
+                _, metadata = result
                 if metadata and "content" in metadata:
                     matches.append((metadata["content"], score))
 
             if not matches:
-                print("К сожаленияю, я не знаю ответа на ваш вопрос")
+                print("К сожалению, я не знаю ответа на ваш вопрос")
                 return
 
             print("\nСовпадения:")

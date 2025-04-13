@@ -5,10 +5,17 @@
     <title>{% block title %}Музейный ассистент{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
+{% include 'components/confirm-modal.html' %}
 <body>
+    <button class="accessibility-toggle" aria-label="Открыть панель доступности">
+        <i class="fa-solid fa-universal-access"></i>
+    </button>
     {% block content %}{% endblock %}
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+
+    <script type="module" src="{{ url_for('static', filename='main.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='confirm-modal.js') }}"></script>
 </body>
 </html>

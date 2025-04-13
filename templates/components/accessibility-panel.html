@@ -1,27 +1,33 @@
 <div class="accessibility-wrapper">
-    <div class="accessibility-panel">
-        <div class="font-size-controls">
-            <span>Размер шрифта:</span>
-            <button class="font-size-btn small" aria-label="Маленький шрифт">A</button>
-            <button class="font-size-btn medium active" aria-label="Средний шрифт">A</button>
-            <button class="font-size-btn large" aria-label="Большой шрифт">A</button>
-        </div>
-
-        <div class="theme-controls">
-            <span>Цвет сайта:</span>
-            <button class="theme-btn light-theme active" aria-label="Светлая тема"></button>
-            <button class="theme-btn dark-theme" aria-label="Тёмная тема"></button>
-            <button class="theme-btn blue-theme" aria-label="Синяя тема"></button>
-            <button class="theme-btn yellow-theme" aria-label="Жёлтая тема"></button>
-        </div>
-
-        <div class="contrast-controls">
-            <span>Высокий контраст:</span>
-            <button class="contrast-btn active" aria-label="Выключить высокий контраст">Выключить</button>
-            <button class="contrast-btn" aria-label="Включить высокий контраст">Включить</button>
-        </div>
-
-        <button class="normal-version-btn" aria-label="Вернуться к обычной версии сайта">Обычная версия сайта</button>
-        <button class="close-panel-btn" aria-label="Скрыть панель доступности"><i class="fa-solid fa-times"></i></button>
+  <div class="accessibility-panel">
+    <div class="font-size-controls">
+      <span>Размер шрифта:</span>
+      <button class="font-size-btn small" aria-label="Маленький шрифт">A</button>
+      <button class="font-size-btn medium active" aria-label="Средний шрифт">A</button>
+      <button class="font-size-btn large" aria-label="Большой шрифт">A</button>
     </div>
+
+    <div class="theme-controls">
+      <span>Цвет сайта:</span>
+      <button class="theme-btn light-theme" aria-label="Светлая тема"></button>
+      <button class="theme-btn dark-theme" aria-label="Тёмная тема"></button>
+      <button class="theme-btn yellow-theme" aria-label="Жёлтая тема"></button>
+      <button class="theme-btn high-contrast" aria-label="Высокий контраст">
+        <span style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">к</span>
+      </button>
+    </div>
+
+    <div class="tts-controls">
+      <span>Озвучивание ответов:</span>
+      <div class="toggle-switch">
+        <input type="checkbox" id="tts-toggle" class="toggle-checkbox" checked>
+        <label for="tts-toggle" class="toggle-label"></label>
+      </div>
+    </div>
+
+    <button class="normal-version-btn" aria-label="Вернуться к обычной версии сайта">Обычная версия сайта</button>
+    <button class="close-panel-btn" aria-label="Скрыть панель доступности">
+      <i class="fa-solid fa-times"></i>
+    </button>
+  </div>
 </div>

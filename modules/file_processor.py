@@ -16,9 +16,10 @@ class FileProcessor:
         self.image_processor = image_processor
         mimetypes.init()
 
-    def update_config(self, new_config: DocumentManagerConfig, image_processor=None):
+    def update_config(self, new_config: DocumentManagerConfig, image_processor=None) -> None:
         self.config = new_config
-        self.image_processor = image_processor
+        if image_processor is not None:
+            self.image_processor = image_processor
 
     def extract_text(self, file_path: Union[str, Path]) -> Optional[str]:
         file_path = Path(file_path)

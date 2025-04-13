@@ -1,46 +1,49 @@
 from pathlib import Path
 from typing import Optional, List, Union
 
-from .file_loader import FileLoader
 from .file_processor import FileProcessor
 from .image_captioner import ImageCaptioner
+from .file_metadata_db import FileMetadataDB
 
 from config_models import AppConfig
 
 
 class DocumentManager:
     """
-    Унифицированный интерфейс для управления файлами и извлечения их содержимого/метаданных.
-    Объединяет функциональность FileLoader и FileProcessor.
+    Унифицированный интерфейс для работы с файлами:
+    извлечение текста, получение метаданных и хэшей, фильтрация по формату.
     """
 
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig, metadata_db: FileMetadataDB):
         self.config = config
+        self.metadata_db = metadata_db
+        self.allowed_file_extensions = config.allowed_file_extensions  
 
-        image_enabled = config.document_manager.image_enabled
+        image_enabled = config.document_processing.image_enabled
         image_processor = ImageCaptioner(config.image_captioning) if image_enabled else None
 
-        self.loader = FileLoader(config)
-        self.processor = FileProcessor(config.document_manager, image_processor=image_processor)
+        self.processor = FileProcessor(config.document_processing, image_processor=image_processor)
 
-    def update_config(self, new_config: AppConfig):
+    def update_config(self, new_config: AppConfig) -> None:
         self.config = new_config
-        image_enabled = new_config.document_manager.image_enabled
-        image_processor = ImageCaptioner(new_config.image_captioning) if image_enabled else None
+        self.allowed_file_extensions = new_config.allowed_file_extensions
 
-        self.loader.update_config(new_config)
-        self.processor.update_config(new_config.document_manager, image_processor=image_processor)
+        image_enabled = new_config.document_processing.image_enabled
+        image_processor = self.processor.image_processor
 
-    def add_files_from_folder(self, folder_path: Union[str, Path]) -> int:
-        return self.loader.add_files_from_folder(str(folder_path))
+        if image_enabled and image_processor is None:
+            image_processor = ImageCaptioner(new_config.image_captioning)
+
+        self.processor.update_config(new_config.document_processing, image_processor=image_processor)
+
+    def is_supported_format(self, file_path: Union[str, Path]) -> bool:
+        ext = Path(file_path).suffix.lower()
+        return ext in self.allowed_file_extensions
 
     def get_files(self, extension: Optional[str] = None) -> List[str]:
-        return self.loader.get_file_list(extension)
+        return self.metadata_db.get_files_by_extension(extension)
 
     def get_text(self, file_path: Union[str, Path]) -> Optional[str]:
-        if not self.loader.get_file_list():
-            print("Файл не зарегистрирован в списке. Добавьте его сначала через add_file().")
-            return None
         return self.processor.extract_text(file_path)
 
     def get_metadata(self, file_path: Union[str, Path]) -> dict:
@@ -48,13 +51,3 @@ class DocumentManager:
 
     def get_hash(self, file_path: Union[str, Path]) -> Optional[str]:
         return self.processor.calculate_hash(file_path)
-
-    def remove_file(self, file_path: Union[str, Path]) -> bool:
-        return self.loader.remove_file(str(file_path))
-
-    def clear_all(self) -> bool:
-        return self.loader.clear_file_list()
-
-    def is_supported_format(self, file_path: Union[str, Path]) -> bool:
-        ext = Path(file_path).suffix.lower()
-        return ext in self.loader.get_allowed_formats()

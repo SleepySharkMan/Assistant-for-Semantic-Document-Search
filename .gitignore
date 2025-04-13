@@ -10,6 +10,7 @@ models/*
 documents/
 static/audio/*
 chroma_db/*
+data/*
 
 # Логи и временные файлы
 logs/*.log

@@ -14,11 +14,18 @@ class EmbeddingHandler:
         self.device = self._get_device(config.device)
         self.model = self._load_model()
 
-    def update_config(self, new_config: AppConfig):
+    def update_config(self, new_config: AppConfig) -> None:
+        config_changed = (
+            self.config.models.embedding != new_config.models.embedding or
+            self.config.device != new_config.device
+        )
+
         self.config = new_config
-        self.model_path = new_config.models.embedding
-        self.device = self._get_device(new_config.device)
-        self.model = self._load_model()
+
+        if config_changed:
+            self.model_path = new_config.models.embedding
+            self.device = self._get_device(new_config.device)
+            self.model = self._load_model()
 
     def _get_device(self, device: Union[str, None]) -> torch.device:
         if device:

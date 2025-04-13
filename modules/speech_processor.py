@@ -13,6 +13,7 @@ from vosk import Model
 from vosk import KaldiRecognizer
 from gtts import gTTS
 from pydub import AudioSegment
+from pathlib import Path
 
 from config_models import SpeechConfig
 from config_models import ModelConfig
@@ -32,10 +33,18 @@ class SpeechProcessor:
             raise FileNotFoundError(f"Модель не найдена: {self.model_path}")
         self.vosk_model = Model(self.model_path)
 
-    def update_config(self, new_config: SpeechConfig, new_models: ModelConfig):
+    def update_config(self, new_config: SpeechConfig, new_models: ModelConfig) -> None:
+        model_path_changed = self.model_path != new_models.vosk
+        voice_lang_changed = self.config.language != new_config.language
+
         self.config = new_config
         self.model_path = new_models.vosk
-        self.__init__(new_config, new_models)
+
+        if model_path_changed:
+            self.vosk_model = Model(self.model_path)
+
+        if voice_lang_changed:
+            self.set_voice(self.config.language)
 
     def set_voice(self, language):
         voices = self.engine.getProperty('voices')

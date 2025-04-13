@@ -1,19 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-    {% include "components/accessibility-panel.html" %}
+  {% include 'components/accessibility-panel.html' %}
 
-    <div class="container">
-        {% include "components/header.html" %}
+  <div class="container">
 
-        <main class="chat-container">
-            <div class="messages" id="messages">
-                {% for message in messages %}
-                    {% include "components/message.html" %}
-                {% endfor %}
-            </div>
 
-            {% include "components/input-area.html" %}
-        </main>
-    </div>
+    <main class="chat-container">
+      <div class="messages" id="messages">
+        {% for message in messages %}
+          {% include "components/message.html" %}
+        {% endfor %}
+      </div>
+
+      {% include "components/input-area.html" %}
+      
+      <div class="clear-btn-wrapper">
+        <button id="clear-btn" class="clear-btn" aria-label="Очистить чат">Очистить чат</button>
+      </div>
+    </main>
+  </div>
 {% endblock %}

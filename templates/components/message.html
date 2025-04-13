@@ -1,10 +1,11 @@
 <div class="message {{ message.sender }}-message">
-    <div class="message-content">
-        <p>{{ message.text }}</p>
-    </div>
-    {% if message.sender == 'bot' %}
-        <button class="play-audio-btn" aria-label="Прослушать сообщение">
-            <i class="fa-solid fa-volume-high"></i>
-        </button>
-    {% endif %}
+  <div class="message-content">
+    <p>{{ message.text }}</p>
+  </div>
+
+  {% if message.sender == 'bot' %}
+  <button class="play-audio-btn" aria-label="Озвучить">
+    <i class="audio-icon"></i>
+  </button>
+  {% endif %}
 </div>

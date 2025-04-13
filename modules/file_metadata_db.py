@@ -1,6 +1,7 @@
 import sqlite3
-
+from pathlib import Path
 from typing import Optional, Dict, List
+
 from config_models import FileMetadataDBConfig
 
 
@@ -8,12 +9,21 @@ class FileMetadataDB:
     def __init__(self, config: FileMetadataDBConfig):
         self.config = config
         self.db_path = config.db_path
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(self.db_path)
         self._create_tables()
 
-    def update_config(self, new_config: FileMetadataDBConfig):
-        self.conn.close()
-        self.__init__(new_config)
+    def update_config(self, new_config: FileMetadataDBConfig) -> None:
+        if new_config.db_path != self.config.db_path:
+            if hasattr(self, "conn"):
+                self.conn.close()
+            self.config = new_config
+            self.db_path = new_config.db_path
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+            self.conn = sqlite3.connect(self.db_path)
+            self._create_tables()
+        else:
+            self.config = new_config
 
     def _create_tables(self) -> None:
         cursor = self.conn.cursor()
@@ -118,6 +128,31 @@ class FileMetadataDB:
         cursor.execute("SELECT * FROM files")
         return [self._row_to_dict(row) for row in cursor.fetchall()]
 
+    def get_files_by_extension(self, extension: Optional[str] = None) -> List[str]:
+        cursor = self.conn.cursor()
+        if extension:
+            if not extension.startswith('.'):
+                extension = '.' + extension
+            extension = extension.lower()
+            cursor.execute(
+                "SELECT path FROM files WHERE LOWER(path) LIKE ?",
+                (f"%{extension}",)
+            )
+        else:
+            cursor.execute("SELECT path FROM files")
+        return [row[0] for row in cursor.fetchall()]
+
+    def is_supported_format(self, file_path: str, allowed_extensions: List[str]) -> bool:
+        from pathlib import Path
+        ext = Path(file_path).suffix.lower()
+        return ext in allowed_extensions
+
+    def delete_file(self, file_id: int) -> bool:
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM files WHERE id = ?", (file_id,))
+        self.conn.commit()
+        return cursor.rowcount > 0
+
     def _row_to_dict(self, row) -> Dict:
         return {
             "id": row[0],
@@ -129,11 +164,6 @@ class FileMetadataDB:
             "created_at": row[6]
         }
 
-    def delete_file(self, file_id: int) -> bool:
-        cursor = self.conn.cursor()
-        cursor.execute("DELETE FROM files WHERE id = ?", (file_id,))
-        self.conn.commit()
-        return cursor.rowcount > 0
-
     def __del__(self):
-        self.conn.close()
+        if hasattr(self, "conn"):
+            self.conn.close()

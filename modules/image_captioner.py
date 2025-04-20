@@ -1,4 +1,5 @@
 import torch
+import logging
 from PIL import Image
 
 from transformers import BlipProcessor
@@ -9,6 +10,7 @@ from typing import Union
 
 from config_models import ImageCaptioningConfig
 
+logger = logging.getLogger(__name__)
 
 class ImageCaptioner:
     def __init__(self, config: ImageCaptioningConfig):
@@ -41,5 +43,5 @@ class ImageCaptioner:
             out = self.model.generate(**inputs)
             return self.processor.decode(out[0], skip_special_tokens=True).strip()
         except Exception as e:
-            print(f"Ошибка генерации описания изображения: {e}")
+            logger.error("Ошибка генерации описания изображения: %s", e, exc_info=True)
             return ""

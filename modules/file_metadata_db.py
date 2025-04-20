@@ -1,9 +1,12 @@
 import sqlite3
+import logging
+
 from pathlib import Path
 from typing import Optional, Dict, List
 
 from config_models import FileMetadataDBConfig
 
+logger = logging.getLogger(__name__)
 
 class FileMetadataDB:
     def __init__(self, config: FileMetadataDBConfig):
@@ -63,11 +66,11 @@ class FileMetadataDB:
             if cursor.lastrowid == 0:
                 existing = self.get_file_by_hash(file_hash)
                 if existing:
-                    print(f"Файл {path} уже добавлен ранее.")
+                    logger.info("Файл %s уже добавлен ранее.", path)
                     return None
             return cursor.lastrowid
         except sqlite3.Error as e:
-            print(f"Ошибка добавления файла: {str(e)}")
+            logger.error("Ошибка добавления файла: %s", e, exc_info=True)
             return None
 
     def mark_file_as_processed(self, file_id: int) -> bool:
@@ -120,7 +123,7 @@ class FileMetadataDB:
             self.conn.commit()
             return True
         except sqlite3.IntegrityError:
-            print(f"Файл с ID {file_id} не существует")
+            logger.warning("Файл с ID %s не существует", file_id)
             return False
 
     def get_all_files(self) -> List[Dict]:

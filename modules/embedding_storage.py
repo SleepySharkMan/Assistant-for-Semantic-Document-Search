@@ -1,5 +1,6 @@
 import chromadb
 import numpy as np
+import logging
 
 from chromadb.config import Settings
 from chromadb.errors import InvalidCollectionException
@@ -8,6 +9,7 @@ from typing import List, Tuple, Optional, Dict
 
 from config_models import EmbeddingStorageConfig
 
+logger = logging.getLogger(__name__)
 
 class EmbeddingStorage:
     def __init__(self, config: EmbeddingStorageConfig):
@@ -15,6 +17,7 @@ class EmbeddingStorage:
         self.db_path = Path(config.db_path)
         self.collection_name = config.collection_name
         self.embedding_dim = config.embedding_dim
+        self.similarity_threshold = config.similarity_threshold
 
         self.db_path.mkdir(parents=True, exist_ok=True)
         self.client = chromadb.PersistentClient(
@@ -38,7 +41,7 @@ class EmbeddingStorage:
                     "embedding_dim": str(self.embedding_dim)
                 }
             )
-            print(f"Коллекция '{self.collection_name}' создана")
+            logger.info("Коллекция '%s' создана", self.collection_name)
 
     def add_embedding(self, doc_id: str, embedding: np.ndarray, metadata: dict = None) -> None:
         if not isinstance(doc_id, str):
@@ -56,8 +59,14 @@ class EmbeddingStorage:
             metadatas=[metadata]
         )
 
-    def search_similar(self, query_embedding: np.ndarray, top_k: int = 5, filters: Dict = None) -> List[Tuple[str, float]]:
+    def search_similar(
+        self,
+        query_embedding: np.ndarray,
+        top_k: int = 5,
+        filters: Optional[Dict] = None
+    ) -> List[Tuple[str, float]]:
         query = query_embedding.tolist()
+
         results = self.collection.query(
             query_embeddings=[query],
             n_results=min(top_k, self.collection.count()),
@@ -65,12 +74,11 @@ class EmbeddingStorage:
             include=["distances"]
         )
 
+        threshold = self.similarity_threshold
         return [
             (doc_id, 1 - distance)
-            for doc_id, distance in zip(
-                results["ids"][0],
-                results["distances"][0]
-            )
+            for doc_id, distance in zip(results["ids"][0], results["distances"][0])
+            if (1 - distance) >= threshold
         ]
 
     def get_embedding(self, doc_id: str) -> Optional[np.ndarray]:
@@ -94,8 +102,11 @@ class EmbeddingStorage:
             "space": "cosine"
         }
 
-    def get_embedding_with_metadata(self, doc_id: str) -> Optional[tuple]:
-        result = self.collection.get(ids=[doc_id], include=["embeddings", "metadatas"])
+    def get_embedding_with_metadata(self, doc_id: str) -> Optional[Tuple[np.ndarray, Dict]]:
+        result = self.collection.get(
+            ids=[doc_id],
+            include=["embeddings", "metadatas"]
+        )
         embeddings = result.get("embeddings", [])
         metadatas = result.get("metadatas", [])
 

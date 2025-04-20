@@ -1,6 +1,7 @@
 import re
 from io import BytesIO
 from typing import Optional
+
 from modules.embedding_handler import EmbeddingHandler
 from modules.embedding_storage import EmbeddingStorage
 from modules.answer_generator import AnswerGeneratorAndValidator
@@ -37,8 +38,7 @@ class DialogManager:
         self.speech = speech
         self.history = history
         self.prompt_template = prompt_template
-        self.threshold = self.generator.config.generation.similarity_threshold
-        self.messages = self.generator.config.messages  
+        self.messages = generator.config.messages
 
     def reload(
         self,
@@ -53,7 +53,6 @@ class DialogManager:
             self.storage = storage
         if generator:
             self.generator = generator
-            self.threshold = generator.config.generation.similarity_threshold
             self.messages = generator.config.messages
         if speech:
             self.speech = speech
@@ -67,10 +66,8 @@ class DialogManager:
         results = self.storage.search_similar(query_embedding, top_k=top_k)
 
         contexts = []
-        for doc_id, score in results:
-            if score < self.threshold:
-                continue
-            _, metadata = self.storage.get_embedding_with_metadata(doc_id)
+        for doc_id, _ in results:
+            embedding, metadata = self.storage.get_embedding_with_metadata(doc_id)
             if metadata and "content" in metadata:
                 contexts.append(metadata["content"])
 

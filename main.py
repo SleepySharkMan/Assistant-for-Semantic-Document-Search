@@ -1,3 +1,6 @@
+import logging.config
+import os
+
 from flask import Flask
 from config_loader import ConfigLoader
 from modules.document_manager import DocumentManager
@@ -16,6 +19,10 @@ from pathlib import Path
 def create_app():
     # === Загрузка конфигурации ===
     config = ConfigLoader("config.yaml").full
+
+    setup_logging(config)
+    logger = logging.getLogger(__name__)
+    logger.info("Логирование инициализировано")
 
     # === Инициализация компонентов ===
     metadata_db = FileMetadataDB(config.metadata_storage)
@@ -81,6 +88,45 @@ def create_app():
     app = Flask(__name__)
     register_routes(app, dialog_manager)
     return app
+
+def setup_logging(cfg):
+    log_file = cfg.logging.file
+    # создаём директорию, если её нет
+    log_dir = os.path.dirname(log_file)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+
+    log = cfg.logging
+    dict_conf = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "format": log.format,
+                "datefmt": "%Y-%m-%d %H:%M:%S"
+            }
+        },
+        "handlers": {
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "level": log.level,
+                "formatter": "default",
+                "filename": log_file,
+                "maxBytes": log.max_bytes,
+                "backupCount": log.backup_count
+            },
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": log.console_level,
+                "formatter": "default"
+            }
+        },
+        "root": {
+            "level": log.level,
+            "handlers": ["file", "console"]
+        }
+    }
+    logging.config.dictConfig(dict_conf)
 
 
 if __name__ == "__main__":

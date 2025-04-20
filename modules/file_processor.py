@@ -1,5 +1,6 @@
 import mimetypes
 import hashlib
+import logging
 
 from pathlib import Path
 from typing import Optional, Union, Dict
@@ -9,6 +10,7 @@ from docx import Document
 
 from config_models import DocumentManagerConfig
 
+logger = logging.getLogger(__name__)
 
 class FileProcessor:
     def __init__(self, config: DocumentManagerConfig, image_processor=None):
@@ -24,7 +26,7 @@ class FileProcessor:
     def extract_text(self, file_path: Union[str, Path]) -> Optional[str]:
         file_path = Path(file_path)
         if not file_path.exists():
-            print(f"Файл {file_path} не найден.")
+            logger.warning("Файл не найден: %s", file_path)
             return None
 
         try:
@@ -39,11 +41,11 @@ class FileProcessor:
             if mime_type.startswith('image/') and self.image_processor and self.config.image_enabled:
                 return self.image_processor.extract_text(file_path)
 
-            print(f"Формат {mime_type} не поддерживается.")
+            logger.warning("Формат %s не поддерживается для %s", mime_type, file_path)
             return None
 
         except Exception as e:
-            print(f"Ошибка обработки файла {file_path}: {str(e)}")
+            logger.error("Ошибка обработки файла %s: %s", file_path, e, exc_info=True)
             return None
 
     def get_metadata(self, file_path: Union[str, Path]) -> Dict:

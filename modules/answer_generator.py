@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import logging
 
 from transformers import AutoModelForCausalLM
 from transformers import AutoModelForQuestionAnswering
@@ -11,6 +12,7 @@ from config_models import AppConfig
 from config_models import QuantizationMode
 from config_models import GenerationMode
 
+logger = logging.getLogger(__name__)
 
 class AnswerGeneratorAndValidator:
     def __init__(self, config: AppConfig):
@@ -158,7 +160,7 @@ class AnswerGeneratorAndValidator:
             raw_answer = self.text_tokenizer.decode(outputs[0], skip_special_tokens=True)
             return raw_answer[len(prompt):].strip()
         except Exception as e:
-            print(f"Ошибка генерации: {str(e)}")
+            logger.error("Ошибка генерации: %s", e, exc_info=True)
             return ""
 
     def get_device_info(self):

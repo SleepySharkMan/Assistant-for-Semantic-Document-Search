@@ -1,11 +1,13 @@
 import torch
 import numpy as np
+import logging
 
 from sentence_transformers import SentenceTransformer
 from typing import List, Union
 
 from config_models import AppConfig
 
+logger = logging.getLogger(__name__)
 
 class EmbeddingHandler:
     def __init__(self, config: AppConfig):
@@ -35,7 +37,7 @@ class EmbeddingHandler:
     def _load_model(self) -> SentenceTransformer:
         model = SentenceTransformer(self.model_path)
         model.to(self.device)
-        print(f"Модель загружена на устройство: {self.device}")
+        logger.info("Модель загружена на устройство: %s", self.device)
         return model
 
     def get_text_embedding(self, text: str, normalize: bool = True) -> np.ndarray:

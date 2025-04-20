@@ -2,6 +2,7 @@ import io
 import os
 import wave
 import json
+import logging
 
 import pyttsx3
 import requests
@@ -18,6 +19,7 @@ from pathlib import Path
 from config_models import SpeechConfig
 from config_models import ModelConfig
 
+logger = logging.getLogger(__name__)
 
 class SpeechProcessor:
     def __init__(self, config: SpeechConfig, models: ModelConfig):
@@ -55,7 +57,7 @@ class SpeechProcessor:
                 self.engine.setProperty('voice', voice.id)
                 return
 
-        print(f"Предупреждение: Голос для языка '{language}' не найден. Установите RHVoice для русского языка.")
+        logger.warning("Голос для языка '%s' не найден. Установите RHVoice для русского.", language)
 
     def check_internet(self):
         try:

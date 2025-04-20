@@ -38,6 +38,7 @@ class EmbeddingStorageConfig:
     db_path: str
     collection_name: str
     embedding_dim: int
+    similarity_threshold: float
 
 
 @dataclass
@@ -87,7 +88,6 @@ class GenerationConfig:
     early_stopping: bool
     deterministic: DeterministicConfig
     stochastic: StochasticConfig
-    similarity_threshold: float
     enable_cpu_offload: bool
 
 
@@ -100,6 +100,16 @@ class DialogHistoryConfig:
 class DefaultMessages:
     empty_storage: str
     no_contexts_found: str
+
+
+@dataclass
+class LoggingConfig:
+    level: str            
+    file: str             
+    format: str           
+    max_bytes: int        
+    backup_count: int     
+    console_level: str    
 
 
 @dataclass
@@ -120,3 +130,4 @@ class AppConfig:
     dialog_prompt: str
     dialog_history: DialogHistoryConfig
     messages: DefaultMessages
+    logging: LoggingConfig

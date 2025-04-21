@@ -15,6 +15,7 @@ class FileMetadataDB:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(self.db_path)
         self._create_tables()
+        logger.info("FileMetadataDB подключена: %s", self.db_path)
 
     def update_config(self, new_config: FileMetadataDBConfig) -> None:
         if new_config.db_path != self.config.db_path:

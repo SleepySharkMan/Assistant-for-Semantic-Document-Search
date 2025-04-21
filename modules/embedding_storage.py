@@ -25,6 +25,7 @@ class EmbeddingStorage:
             settings=Settings(allow_reset=True)
         )
         self._init_collection()
+        logger.info("EmbeddingStorage готов: %s/%s", self.db_path, self.collection_name)
 
     def update_config(self, new_config: EmbeddingStorageConfig):
         self.config = new_config

@@ -20,6 +20,7 @@ class ImageCaptioner:
 
         self.processor = BlipProcessor.from_pretrained(self.model_name)
         self.model = BlipForConditionalGeneration.from_pretrained(self.model_name).to(self.device)
+        logger.info("ImageCaptioner: модель=%s, устройство=%s", self.model_name, self.device)
 
     def update_config(self, new_config: ImageCaptioningConfig) -> None:
         model_changed  = self.config.model_name != new_config.model_name

@@ -1,4 +1,5 @@
 import re
+import logging
 from io import BytesIO
 from typing import Optional
 
@@ -16,6 +17,7 @@ def clean_cut(text: str) -> str:
     sentences = re.split(r'(?<=[.!?])\s+', text)
     return ' '.join(sentences[:-1]) if len(sentences) > 1 else text
 
+logger = logging.getLogger(__name__)
 
 class DialogManager:
     """
@@ -39,6 +41,7 @@ class DialogManager:
         self.history = history
         self.prompt_template = prompt_template
         self.messages = generator.config.messages
+        logger.info("DialogManager инициализирован")
 
     def reload(
         self,
@@ -58,12 +61,14 @@ class DialogManager:
             self.speech = speech
 
     def answer_text(self, user_id: str, question: str, top_k: int = 3) -> str:
+        logger.info("answer_text: user=%s, вопрос=%s", user_id, question)
         stats = self.storage.get_collection_stats()
         if stats["count"] == 0:
             return self.messages.empty_storage
 
         query_embedding = self.embedder.get_text_embedding(question)
         results = self.storage.search_similar(query_embedding, top_k=top_k)
+        logger.debug("Найдено %d результатов", len(results))
 
         contexts = []
         for doc_id, _ in results:
@@ -83,6 +88,7 @@ class DialogManager:
         answer = clean_cut(answer)
 
         self.history.save(user_id=user_id, user_text=question, assistant_text=answer)
+        logger.debug("Ответ сохранён для %s", user_id)
         return answer
 
     def answer_speech(self, audio_stream: BytesIO) -> Optional[str]:

@@ -35,12 +35,13 @@ def create_app():
     history = DialogHistory(config.dialog_history.db_path)
 
     # === Индексация файлов из папки ===
-    print(f"📁 Индексация документов из папки: {config.documents_folder}")
+    logger.info("Начало индексации папки %s", config.documents_folder)
     folder_path = Path(config.documents_folder)
     added = 0
 
     if folder_path.exists() and folder_path.is_dir():
         for file_path in folder_path.iterdir():
+            logger.debug("Проверка файла %s", file_path)
             if not file_path.is_file():
                 continue
             if not document_manager.is_supported_format(file_path):
@@ -70,9 +71,10 @@ def create_app():
                     "source": str(file_path),
                     "content": ctx[:300] + "..." if len(ctx) > 300 else ctx
                 })
+                logger.debug("Добавлено %d фрагментов для %s", len(contexts), file_path)
             added += 1
 
-    print(f"✅ Добавлено новых файлов: {added}")
+    logger.info("Добавлено новых файлов: %d", added)
 
     # === Создаём диалоговый менеджер ===
     dialog_manager = DialogManager(

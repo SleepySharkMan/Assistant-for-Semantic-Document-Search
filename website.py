@@ -1,6 +1,9 @@
+import logging
+
 from flask import request, jsonify, send_file, render_template
 from io import BytesIO
 
+logger = logging.getLogger(__name__)
 
 def register_routes(app, dialog_manager):
     """
@@ -9,13 +12,16 @@ def register_routes(app, dialog_manager):
 
     @app.route("/api/message", methods=["POST"])
     def handle_text_message():
+        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
         data = request.get_json()
         question = data.get("message", "").strip()
         user_id = data.get("user_id", "").strip()
 
         if not user_id:
+            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
             return jsonify({"error": "user_id обязателен"}), 400
         if not question:
+            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
             return jsonify({"answer": "Вопрос не может быть пустым."}), 400
 
         answer = dialog_manager.answer_text(user_id=user_id, question=question)
@@ -23,8 +29,10 @@ def register_routes(app, dialog_manager):
 
     @app.route("/api/history", methods=["GET"])
     def get_history():
+        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
         user_id = request.args.get("user_id", "").strip()
         if not user_id:
+            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
             return jsonify({"error": "user_id обязателен"}), 400
 
         history = dialog_manager.history.fetch_latest(user_id=user_id, limit=30)
@@ -36,9 +44,11 @@ def register_routes(app, dialog_manager):
     
     @app.route("/api/history", methods=["DELETE"])
     def delete_history():
+        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
         data = request.get_json()
         user_id = data.get("user_id", "").strip()
         if not user_id:
+            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
             return jsonify({"error": "user_id обязателен"}), 400
 
         dialog_manager.history.clear_user_history(user_id)
@@ -46,18 +56,22 @@ def register_routes(app, dialog_manager):
 
     @app.route("/api/speech-to-text", methods=["POST"])
     def handle_speech_to_text():
+        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
         if "audio" not in request.files:
             return jsonify({"error": "Аудиофайл не предоставлен."}), 400
 
         audio = request.files["audio"]
         text = dialog_manager.answer_speech(audio.stream)
+        logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
         return jsonify({"text": text or "Ошибка распознавания речи."})
 
     @app.route("/api/text-to-speech", methods=["POST"])
     def handle_text_to_speech():
+        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
         data = request.get_json()
         text = data.get("text", "").strip()
         if not text:
+            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
             return jsonify({"error": "Текст не может быть пустым."}), 400
 
         audio_stream = dialog_manager.synthesize_speech(text)

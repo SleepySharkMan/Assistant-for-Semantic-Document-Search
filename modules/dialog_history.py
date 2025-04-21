@@ -8,6 +8,7 @@ class DialogHistory:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self._create_table()
+        logger.info("DialogHistory подключена: %s", db_path)
 
     def _create_table(self):
         self.conn.execute("""
@@ -27,6 +28,7 @@ class DialogHistory:
             (user_id.strip(), user_text.strip(), assistant_text.strip())
         )
         self.conn.commit()
+        logger.debug("Сохранён диалог %s: %s → %s", user_id, user_text, assistant_text)
 
     def fetch_latest(self, user_id: str, limit: int = 30) -> List[Dict]:
         cursor = self.conn.cursor()
@@ -41,6 +43,7 @@ class DialogHistory:
             (user_id, limit)
         )
         rows = cursor.fetchall()
+        logger.debug("Загрузка %d записей для %s", limit, user_id)
         return [
             {"timestamp": r[0], "user": r[1], "assistant": r[2]}
             for r in rows
@@ -49,6 +52,7 @@ class DialogHistory:
     def clear_user_history(self, user_id: str) -> None:
         self.conn.execute("DELETE FROM dialogs WHERE user_id = ?", (user_id,))
         self.conn.commit()
+        logger.info("История очищена для %s", user_id)
 
     def close(self):
         self.conn.close()

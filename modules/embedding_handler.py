@@ -37,7 +37,7 @@ class EmbeddingHandler:
     def _load_model(self) -> SentenceTransformer:
         model = SentenceTransformer(self.model_path)
         model.to(self.device)
-        logger.info("Модель загружена на устройство: %s", self.device)
+        logger.info("Загружена модель эмбеддингов %s на %s", self.model_path, self.device)
         return model
 
     def get_text_embedding(self, text: str, normalize: bool = True) -> np.ndarray:

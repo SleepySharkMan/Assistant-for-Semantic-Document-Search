@@ -22,6 +22,7 @@ class AnswerGeneratorAndValidator:
         self._init_quantization()
         self._load_models()
         self._configure_generation()
+        logger.info("AnswerGenerator: text=%s, qa=%s, режим=%s", config.models.text, config.models.qa, config.generation_mode)
 
     def update_config(self, new_config: AppConfig) -> None:
         reload_device = self.config.device != new_config.device

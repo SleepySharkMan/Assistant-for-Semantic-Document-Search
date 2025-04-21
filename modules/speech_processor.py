@@ -34,6 +34,7 @@ class SpeechProcessor:
         if not os.path.exists(self.model_path):
             raise FileNotFoundError(f"Модель не найдена: {self.model_path}")
         self.vosk_model = Model(self.model_path)
+        logger.info("SpeechProcessor: язык=%s, режим=%s, модель=%s", self.language, self.mode, self.model_path)
 
     def update_config(self, new_config: SpeechConfig, new_models: ModelConfig) -> None:
         model_path_changed = self.model_path != new_models.vosk
@@ -57,7 +58,7 @@ class SpeechProcessor:
                 self.engine.setProperty('voice', voice.id)
                 return
 
-        logger.warning("Голос для языка '%s' не найден. Установите RHVoice для русского.", language)
+        logger.warning("Голос для языка '%s' не найден", language)
 
     def check_internet(self):
         try:

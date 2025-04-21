@@ -67,7 +67,7 @@ class FileProcessor:
                     hash_func.update(chunk)
             return hash_func.hexdigest()
         except Exception as e:
-            print(f"Ошибка вычисления хеша: {str(e)}")
+            logger.error("Ошибка вычисления хеша: %s", str(e))
             return None
 
     def _get_mime_type(self, file_path: Path) -> str:

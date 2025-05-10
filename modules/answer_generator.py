@@ -8,31 +8,34 @@ from transformers import AutoTokenizer
 from transformers import BitsAndBytesConfig
 from transformers import pipeline
 
-from config_models import AppConfig
+from config_models import AnswerGeneratorConfig
 from config_models import QuantizationMode
 from config_models import GenerationMode
 
 logger = logging.getLogger(__name__)
 
 class AnswerGeneratorAndValidator:
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AnswerGeneratorConfig):
         self.config = config
         self._detect_devices()
         self._init_device()
         self._init_quantization()
         self._load_models()
         self._configure_generation()
-        logger.info("AnswerGenerator: text=%s, qa=%s, режим=%s", config.models.text, config.models.qa, config.generation_mode)
-
-    def update_config(self, new_config: AppConfig) -> None:
-        reload_device = self.config.device != new_config.device
-        reload_quant  = self.config.quantization != new_config.quantization
-        reload_models = (
-            self.config.models.text != new_config.models.text or
-            self.config.models.qa   != new_config.models.qa
+        logger.info(
+            "AnswerGenerator: text=%s, qa=%s, режим=%s",
+            config.text_model_path, config.qa_model_path, config.generation_mode
         )
-        reload_gen_cfg = self.config.generation != new_config.generation
-        reload_mode    = self.config.generation_mode != new_config.generation_mode
+
+    def update_config(self, new_config: AnswerGeneratorConfig) -> None:
+        reload_device   = self.config.device            != new_config.device
+        reload_quant    = self.config.quantization      != new_config.quantization
+        reload_models   = (
+            self.config.text_model_path != new_config.text_model_path or
+            self.config.qa_model_path   != new_config.qa_model_path
+        )
+        reload_gen_cfg  = self.config.generation        != new_config.generation
+        reload_mode     = self.config.generation_mode   != new_config.generation_mode
 
         self.config = new_config
 
@@ -65,8 +68,8 @@ class AnswerGeneratorAndValidator:
         self.quantization = mode
 
     def _load_models(self):
-        qa_path = self.config.models.qa
-        text_path = self.config.models.text
+        qa_path = self.config.qa_model_path
+        text_path = self.config.text_model_path
         offload = self.config.generation.enable_cpu_offload
         quant = self.quantization
         dtype = torch.float16 if quant in [QuantizationMode.FP16, QuantizationMode.NF4] else torch.float32
@@ -162,7 +165,7 @@ class AnswerGeneratorAndValidator:
             return raw_answer[len(prompt):].strip()
         except Exception as e:
             logger.error("Ошибка генерации: %s", e, exc_info=True)
-            return ""
+            return "Извините, возникла ошибка генерации ответа."
 
     def get_device_info(self):
         info = {

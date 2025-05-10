@@ -1,30 +1,21 @@
-import re
+from __future__ import annotations
+
 import logging
+import time
+import uuid
 from io import BytesIO
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from modules.embedding_handler import EmbeddingHandler
 from modules.embedding_storage import EmbeddingStorage
 from modules.answer_generator import AnswerGeneratorAndValidator
 from modules.speech_processor import SpeechProcessor
 from modules.dialog_history import DialogHistory
-
-
-def clean_cut(text: str) -> str:
-    text = text.strip()
-    if text.endswith(('.', '!', '?')):
-        return text
-    sentences = re.split(r'(?<=[.!?])\s+', text)
-    return ' '.join(sentences[:-1]) if len(sentences) > 1 else text
+from config_models import DialogManagerConfig
 
 logger = logging.getLogger(__name__)
 
 class DialogManager:
-    """
-    Обрабатывает текстовые и голосовые запросы пользователя.
-    Использует внешние компоненты: эмбеддер, хранилище, генератор, речь, историю.
-    """
-
     def __init__(
         self,
         embedder: EmbeddingHandler,
@@ -32,73 +23,129 @@ class DialogManager:
         generator: AnswerGeneratorAndValidator,
         speech: SpeechProcessor,
         history: DialogHistory,
-        prompt_template: str
-    ):
-        self.embedder = embedder
-        self.storage = storage
+        config: DialogManagerConfig
+    ) -> None:
+        self.embedder  = embedder
+        self.storage   = storage
         self.generator = generator
-        self.speech = speech
-        self.history = history
-        self.prompt_template = prompt_template
-        self.messages = generator.config.messages
-        logger.info("DialogManager инициализирован")
+        self.speech    = speech
+        self.history   = history
+
+        self.config                 = config
+        self.prompt_template        = config.prompt_template
+        self.show_text_source_info  = config.show_text_source_info
+        self.show_text_fragments    = config.show_text_fragments
+
+        self._msg_empty  = config.messages.empty_storage
+        self._msg_no_ctx = config.messages.no_contexts_found
+
+    def answer_text(
+        self,
+        user_id: str,
+        question: str,
+        *,
+        top_k: int = 5,
+        request_source_info: Optional[bool] = None,
+        request_fragments: Optional[bool] = None
+        ) -> dict:
+        """
+        Обрабатывает запрос на получение ответа с учетом флагов для фрагментов текста и источников.
+        
+        :param user_id: Идентификатор пользователя.
+        :param question: Вопрос пользователя.
+        :param top_k: Количество наиболее похожих документов для обработки.
+        :param request_source_info: Флаг запроса источников (переопределяет конфиг).
+        :param request_fragments: Флаг запроса фрагментов текста (переопределяет конфиг).
+        :return: Ответ в формате словарь.
+        """
+
+        req_id = uuid.uuid4().hex[:8]
+        start = time.perf_counter()
+
+        if self.storage.get_collection_stats()["count"] == 0:
+            logger.info("[%s] storage empty", req_id)
+            return {"answer": self._msg_empty}
+
+        q_emb = self.embedder.get_text_embedding(question)
+        hits: List[Tuple[str, float]] = self.storage.search_similar(q_emb, top_k=top_k)
+        if not hits:
+            return {"answer": self._msg_no_ctx}
+
+        contexts: List[str] = []
+        sources: List[str] = []
+        for doc_id, _ in hits:
+            _, meta = self.storage.get_embedding_with_metadata(doc_id)
+            if meta and meta.get("content"):
+                contexts.append(meta["content"])
+            if meta and meta.get("source"):
+                sources.append(meta["source"])
+
+        if not contexts:
+            return {"answer": self._msg_no_ctx}
+
+        prompt = self.prompt_template.format(context="\n\n".join(contexts), question=question.strip())
+        answer = self._trim(self.generator.generate_response(prompt))
+
+        response = {"answer": answer}
+
+        if self.show_text_fragments and (request_fragments is not False):
+            response["fragments"] = contexts
+
+        if self.show_text_source_info and (request_source_info is not False):
+            response["sources"] = sources
+
+        self.history.save(user_id=user_id, user_text=question, assistant_text=answer)
+        logger.info("[%s] answered in %.2f s", req_id, time.perf_counter() - start)
+
+        return response
+
+    def answer_speech(self, audio: BytesIO) -> Optional[str]:
+        try:
+            return self.speech.speech_to_text(audio)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("STT error: %s", exc)
+            return None
+
+    def synthesize_speech(self, text: str) -> BytesIO:
+        try:
+            audio_seg = self.speech.text_to_speech(text)
+            out = BytesIO()
+            audio_seg.export(out, format="wav")  # type: ignore[arg-type]
+            out.seek(0)
+            return out
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("TTS error: %s", exc)
+            return BytesIO()
 
     def reload(
         self,
-        embedder: Optional[EmbeddingHandler] = None,
-        storage: Optional[EmbeddingStorage] = None,
-        generator: Optional[AnswerGeneratorAndValidator] = None,
-        speech: Optional[SpeechProcessor] = None
-    ):
+        *,
+        embedder: EmbeddingHandler = None,
+        storage: EmbeddingStorage = None,
+        generator: AnswerGeneratorAndValidator = None,
+        speech: SpeechProcessor = None,
+        config: DialogManagerConfig = None
+    ) -> None:
         if embedder:
             self.embedder = embedder
         if storage:
             self.storage = storage
         if generator:
             self.generator = generator
-            self.messages = generator.config.messages
         if speech:
             self.speech = speech
+        if config:
+            self.config                 = config
+            self.prompt_template        = config.prompt_template
+            self.show_text_source_info  = config.show_text_source_info
+            self.show_text_fragments    = config.show_text_fragments
+            self._msg_empty  = config.messages.empty_storage
+            self._msg_no_ctx = config.messages.no_contexts_found
 
-    def answer_text(self, user_id: str, question: str, top_k: int = 3) -> str:
-        logger.info("answer_text: user=%s, вопрос=%s", user_id, question)
-        stats = self.storage.get_collection_stats()
-        if stats["count"] == 0:
-            return self.messages.empty_storage
-
-        query_embedding = self.embedder.get_text_embedding(question)
-        results = self.storage.search_similar(query_embedding, top_k=top_k)
-        logger.debug("Найдено %d результатов", len(results))
-
-        contexts = []
-        for doc_id, _ in results:
-            embedding, metadata = self.storage.get_embedding_with_metadata(doc_id)
-            if metadata and "content" in metadata:
-                contexts.append(metadata["content"])
-
-        if not contexts:
-            return self.messages.no_contexts_found
-
-        prompt = self.prompt_template.format(
-            context="\n".join(contexts),
-            question=question.strip()
-        )
-
-        answer = self.generator.generate_response(prompt)
-        answer = clean_cut(answer)
-
-        self.history.save(user_id=user_id, user_text=question, assistant_text=answer)
-        logger.debug("Ответ сохранён для %s", user_id)
-        return answer
-
-    def answer_speech(self, audio_stream: BytesIO) -> Optional[str]:
-        try:
-            return self.speech.speech_to_text(audio_stream)
-        except Exception:
-            return None
-
-    def synthesize_speech(self, text: str) -> BytesIO:
-        try:
-            return self.speech.text_to_speech(text).export(format="wav")
-        except Exception:
-            return BytesIO()
+    @staticmethod
+    def _trim(text: str) -> str:
+        text = text.strip()
+        if text.endswith((".", "!", "?")):
+            return text
+        last = max(text.rfind("."), text.rfind("!"), text.rfind("?"))
+        return text if last == -1 else text[: last + 1]

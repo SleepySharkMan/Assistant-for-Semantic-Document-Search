@@ -27,9 +27,11 @@ class EmbeddingStorage:
         self._init_collection()
         logger.info("EmbeddingStorage готов: %s/%s", self.db_path, self.collection_name)
 
-    def update_config(self, new_config: EmbeddingStorageConfig):
-        self.config = new_config
-        self.__init__(new_config)
+    def update_config(self, new_config: EmbeddingStorageConfig) -> None:
+        if new_config != self.config:
+            self.__init__(new_config)
+        else:
+            self.config = new_config
 
     def _init_collection(self) -> None:
         try:

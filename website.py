@@ -1,98 +1,159 @@
 import logging
-
 from flask import request, jsonify, send_file, render_template
 from io import BytesIO
 
 logger = logging.getLogger(__name__)
 
 def register_routes(app, dialog_manager):
-    """
-    Регистрирует API-маршруты Flask-приложения для работы с DialogManager.
-    """
+    @app.errorhandler(Exception)
+    def handle_global_exception(error):
+        logger.exception("Неперехваченное исключение: %s", error)
+        return jsonify({"error": "Внутренняя ошибка сервера."}), 500
 
     @app.route("/api/message", methods=["POST"])
     def handle_text_message():
-        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
-        data = request.get_json()
+        data = request.get_json() or {}
+        user_id = data.get("user_id")
         question = data.get("message", "").strip()
-        user_id = data.get("user_id", "").strip()
+        show_source_info   = bool(data.get("show_source_info"))
+        show_text_fragments = bool(data.get("show_text_fragments"))
 
+        # Валидация
         if not user_id:
-            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
-            return jsonify({"error": "user_id обязателен"}), 400
+            return jsonify({'error': 'user_id обязателен'}), 400
         if not question:
-            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
-            return jsonify({"answer": "Вопрос не может быть пустым."}), 400
+            return jsonify({'error': 'Вопрос не может быть пустым.'}), 400
 
-        answer = dialog_manager.answer_text(user_id=user_id, question=question)
-        return jsonify({"answer": answer})
+        try:
+            response = dialog_manager.answer_text(
+                user_id=user_id,
+                question=question,
+                request_source_info=show_source_info,
+                request_fragments=show_text_fragments
+            )
+        except Exception:
+            logger.exception("Ошибка при обработке текстового запроса")
+            return jsonify({'error': 'Ошибка при обработке запроса.'}), 500
+
+        # Собираем финальный ответ
+        final = {'answer': response.get('answer')}
+
+        has_src  = 'sources'   in response and response['sources']
+        has_frag = 'fragments' in response and response['fragments']
+
+        if has_src and has_frag:
+            # 1) оба — группируем по файлу
+            grouped = {}
+            for src, frag in zip(response['sources'], response['fragments']):
+                grouped.setdefault(src, []).append(frag)
+            final['results'] = [
+                {'source': src, 'fragments': frags}
+                for src, frags in grouped.items()
+            ]
+
+        elif has_src:
+            # 2) только источники — возвращаем уникальные
+            final['sources'] = list(dict.fromkeys(response['sources']))
+
+        elif has_frag:
+            # 3) только фрагменты — возвращаем список
+            final['fragments'] = response['fragments']
+
+        # 4) ни того, ни другого — останется только 'answer'
+        return jsonify(final), 200
 
     @app.route("/api/history", methods=["GET"])
     def get_history():
-        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
-        user_id = request.args.get("user_id", "").strip()
+        user_id = (request.args.get("user_id") or "").strip()
+        logger.info("HTTP %s %s user_id=%r", request.method, request.path, user_id)
+
         if not user_id:
-            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
+            logger.warning("Некорректный запрос на получение истории: отсутствует user_id. Параметры=%s", request.args)
             return jsonify({"error": "user_id обязателен"}), 400
 
-        history = dialog_manager.history.fetch_latest(user_id=user_id, limit=30)
-        messages = []
-        for entry in reversed(history):
-            messages.append({"sender": "user", "text": entry["user"]})
-            messages.append({"sender": "bot", "text": entry["assistant"]})
-        return jsonify({"messages": messages})
-    
+        try:
+            entries = dialog_manager.history.fetch_latest(user_id=user_id, limit=30)
+            messages = []
+            for entry in reversed(entries):
+                messages.append({"sender": "user", "text": entry["user"]})
+                messages.append({"sender": "bot", "text": entry["assistant"]})
+            return jsonify({"messages": messages}), 200
+        except Exception as e:
+            logger.exception("Ошибка при получении истории для пользователя %s: %s", user_id, e)
+            return jsonify({"error": "Ошибка при получении истории."}), 500
+
     @app.route("/api/history", methods=["DELETE"])
     def delete_history():
-        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
-        data = request.get_json()
-        user_id = data.get("user_id", "").strip()
+        data = request.get_json(silent=True) or {}
+        user_id = (data.get("user_id") or "").strip()
+        logger.info("HTTP %s %s user_id=%r", request.method, request.path, user_id)
+
         if not user_id:
-            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
+            logger.warning("Некорректный запрос на удаление истории: отсутствует user_id. Полезная нагрузка=%s", data)
             return jsonify({"error": "user_id обязателен"}), 400
 
-        dialog_manager.history.clear_user_history(user_id)
-        return jsonify({"success": True})
+        try:
+            dialog_manager.history.clear_user_history(user_id)
+            return jsonify({"success": True}), 200
+        except Exception as e:
+            logger.exception("Ошибка при удалении истории для пользователя %s: %s", user_id, e)
+            return jsonify({"error": "Ошибка при удалении истории."}), 500
 
     @app.route("/api/speech-to-text", methods=["POST"])
     def handle_speech_to_text():
-        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
+        user_id = (request.form.get("user_id") or request.args.get("user_id") or "").strip()
+        logger.info("HTTP %s %s user_id=%r", request.method, request.path, user_id)
+
         if "audio" not in request.files:
+            logger.warning("Некорректный запрос: аудиофайл не предоставлен. user_id=%s", user_id)
             return jsonify({"error": "Аудиофайл не предоставлен."}), 400
 
-        audio = request.files["audio"]
-        text = dialog_manager.answer_speech(audio.stream)
-        logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
-        return jsonify({"text": text or "Ошибка распознавания речи."})
+        audio_file = request.files["audio"]
+        try:
+            text = dialog_manager.answer_speech(audio_file.stream)
+            if text is None:
+                raise ValueError("Speech recognition вернул None")
+            return jsonify({"text": text}), 200
+        except Exception as e:
+            logger.exception("Ошибка распознавания речи: %s", e)
+            return jsonify({"error": "Ошибка распознавания речи."}), 500
 
     @app.route("/api/text-to-speech", methods=["POST"])
     def handle_text_to_speech():
-        logger.info("HTTP %s %s user_id=%s", request.method, request.path, user_id)
-        data = request.get_json()
-        text = data.get("text", "").strip()
+        data = request.get_json(silent=True) or {}
+        user_id = (data.get("user_id") or "").strip()
+        text = (data.get("text") or "").strip()
+        logger.info("HTTP %s %s user_id=%r text=%r", request.method, request.path, user_id, text)
+
         if not text:
-            logger.warning("Плохой запрос user_id=%s message=%s", user_id, message)
+            logger.warning("Некорректный запрос: пустой текст для синтеза речи. user_id=%s", user_id)
             return jsonify({"error": "Текст не может быть пустым."}), 400
 
-        audio_stream = dialog_manager.synthesize_speech(text)
-        return send_file(
-            BytesIO(audio_stream.read()),
-            mimetype="audio/wav",
-            as_attachment=False
-        )
+        try:
+            audio_segment = dialog_manager.synthesize_speech(text)
+            buf = BytesIO()
+            audio_segment.export(buf, format="wav")
+            buf.seek(0)
+            return send_file(buf, mimetype="audio/wav"), 200
+        except Exception as e:
+            logger.exception("Ошибка синтеза речи: %s", e)
+            return jsonify({"error": "Ошибка синтеза речи."}), 500
 
-    @app.route("/ping")
+    @app.route("/ping", methods=["GET"])
     def ping():
-        return "pong"
+        return "pong", 200
 
-    @app.route("/")
+    @app.route("/", methods=["GET"])
     def index():
-        user_id = request.args.get("user_id", "guest")
-        history = dialog_manager.history.fetch_latest(user_id=user_id, limit=30)
-        messages = []
-        for entry in reversed(history):
-            messages.append({"sender": "user", "text": entry["user"]})
-            messages.append({"sender": "bot", "text": entry["assistant"]})
-        return render_template("index.html", messages=messages)
-    
-    
+        user_id = (request.args.get("user_id") or "guest").strip()
+        logger.info("Запрос главной страницы для user_id=%r", user_id)
+        try:
+            entries = dialog_manager.history.fetch_latest(user_id=user_id, limit=30)
+            messages = []
+            for entry in reversed(entries):
+                messages.append({"sender": "user", "text": entry["user"]})
+                messages.append({"sender": "bot", "text": entry["assistant"]})
+            return render_template("index.html", messages=messages)
+        except Exception as e:
+            logger.exception("Ошибка при рендеринге главной страницы: %s", e)
+            return render_template("index.html", messages=[]), 500

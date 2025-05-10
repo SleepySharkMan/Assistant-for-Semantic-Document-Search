@@ -1,45 +1,41 @@
-# === Устройство и режимы ===
-device: "cuda:0"
-quantization: "nf4"  # fp32, fp16, int8, nf4
-generation_mode: "stochastic"  # deterministic / stochastic
+# -------------------------------------------------
+#   Компонентные (узкие) конфиги
+# -------------------------------------------------
 
-# === Пути к моделям ===
-models:
-  qa: "models/mdeberta-v3-base-squad2"
-  text: "models/Qwen-7B-Chat"
-  embedding: "models/paraphrase-multilingual-MiniLM-L12-v2"
-  vosk: "models/vosk-model-small-ru-0.22"
+# === EmbeddingHandler ===
+embedding_handler:
+  device: "cuda:0"
+  model_path: "models/paraphrase-multilingual-MiniLM-L12-v2"
 
-# === Допустимые форматы файлов ===
-allowed_file_extensions:
-  - ".txt"
-  - ".pdf"
-  - ".docx"
-  - ".csv"
-  - ".xlsx"
+# === AnswerGeneratorAndValidator ===
+answer_generator:
+  device: "cuda:0"
+  quantization: "nf4"          # fp32 | fp16 | int8 | nf4
+  generation_mode: "stochastic"  # deterministic | stochastic
+  text_model_path: "models/Qwen-7B-Chat"
+  qa_model_path:   "models/mdeberta-v3-base-squad2"
 
-# === Генерация текста ===
-generation:
-  max_new_tokens: 2048
-  num_return_sequences: 1
-  no_repeat_ngram_size: 3
-  repetition_penalty: 1.1
-  early_stopping: false
-  enable_cpu_offload: true
+  generation:
+    max_new_tokens: 2048
+    num_return_sequences: 1
+    no_repeat_ngram_size: 3
+    repetition_penalty: 1.1
+    early_stopping: false
+    enable_cpu_offload: true
 
-  deterministic:
-    num_beams: 3
-    length_penalty: 0.7
-    no_repeat_ngram_size: 4
+    deterministic:
+      num_beams: 1
+      length_penalty: 0.7
+      no_repeat_ngram_size: 4
 
-  stochastic:
-    temperature: 0.9
-    top_p: 0.7
-    top_k: 30
-    typical_p: 0.9
-    num_beams: 3
+    stochastic:
+      temperature: 0.9
+      top_p: 0.7
+      top_k: 30
+      typical_p: 0.9
+      num_beams: 1
 
-# === Нарезка текста ===
+# === TextContextSplitter ===
 splitter:
   words_per_context: 150
   overlap_words: 50
@@ -48,53 +44,68 @@ splitter:
   paragraphs_per_context: 2
   overlap_lines: 1
 
-# === Управление документами ===
-documents_folder: "documents"
-document_processing:
-  image_enabled: true
+# === DocumentManager (включает FileProcessor и ImageCaptioner) ===
+document_manager:
+  processing:                    # DocumentProcessingConfig
+    image_enabled: true
+    allowed_extensions:
+      - ".txt"
+      - ".pdf"
+      - ".docx"
+      - ".csv"
+      - ".xlsx"
 
-# === Хранилища ===
+  captioning:                    # ImageCaptioningConfig
+    device: "cuda"
+    model_name: "Salesforce/blip-image-captioning-base"
+
+# === EmbeddingStorage ===
 embedding_storage:
   db_path: "data/chroma_db"
   collection_name: "embeddings"
   embedding_dim: 384
   similarity_threshold: 0.5
 
+# === FileMetadataDB ===
 metadata_storage:
   db_path: "data/file_metadata.db"
 
+# === DialogHistory ===
 dialog_history:
   db_path: "data/dialog_history.db"
 
-# === Распознавание речи ===
+# === SpeechProcessor ===
 speech:
   language: "ru"
-  mode: "auto"  # auto, online, offline
+  mode: "auto"                  # auto | online | offline
 
-# === Описание изображений ===
-image_captioning:
-  device: "cuda"
-  model_name: "Salesforce/blip-image-captioning-base"
+speech_models:                  # SpeechModelsConfig
+  vosk: "models/vosk-model-small-ru-0.22"
 
-# === Шаблон промпта ===
-dialog_prompt: |
-  USER: Вот информация:
-  {context}
+# -------------------------------------------------
+#   Сервисные настройки
+# -------------------------------------------------
 
-  Вопрос: {question}
-  Помоги мне, пожалуйста. Ответ:
-  ASSISTANT:
+documents_folder: "documents"
 
-# === Ответы по умолчанию ===
-messages:
-  empty_storage: "Хранилище знаний пусто. Пожалуйста, загрузите документы."
-  no_contexts_found: "Извините, я не нашёл подходящей информации для ответа."
+dialog_manager:
+  prompt_template: |
+    USER: Вот информация:
+    {context}
 
-# === Логирование (новое) ===
+    Вопрос: {question}
+    Помоги мне, пожалуйста. Ответ:
+    ASSISTANT:
+  show_text_source_info: true
+  show_text_fragments: true
+  messages:
+    empty_storage: "Хранилище знаний пусто. Пожалуйста, загрузите документы."
+    no_contexts_found: "Извините, я не нашёл подходящей информации для ответа."
+
 logging:
-  level: INFO              # уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  file: logs/app.log        # путь до файла, куда писать логи
+  level: INFO
+  file: logs/app.log
   format: "%(asctime)s %(levelname)-8s [%(name)s] %(message)s"
-  max_bytes: 10485760       # максимальный размер файла лога в байтах (10 MB)
-  backup_count: 5           # сколько старых файлов держать при ротации
-  console_level: WARNING    # уровень логирования в консоль (может быть ниже/выше общего)
+  max_bytes: 10485760          # 10 MB
+  backup_count: 5
+  console_level: WARNING

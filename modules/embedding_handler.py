@@ -5,29 +5,28 @@ import logging
 from sentence_transformers import SentenceTransformer
 from typing import List, Union
 
-from config_models import AppConfig
+from config_models import EmbeddingHandlerConfig
 
 logger = logging.getLogger(__name__)
 
 class EmbeddingHandler:
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: EmbeddingHandlerConfig):
         self.config = config
-        self.model_path = config.models.embedding
+        self.model_path = config.model_path
         self.device = self._get_device(config.device)
         self.model = self._load_model()
 
-    def update_config(self, new_config: AppConfig) -> None:
-        config_changed = (
-            self.config.models.embedding != new_config.models.embedding or
-            self.config.device != new_config.device
-        )
-
-        self.config = new_config
-
-        if config_changed:
-            self.model_path = new_config.models.embedding
-            self.device = self._get_device(new_config.device)
-            self.model = self._load_model()
+    def update_config(self, new_config: EmbeddingHandlerConfig) -> None:
+        if (
+            self.config.model_path != new_config.model_path or
+            self.config.device     != new_config.device
+        ):
+            self.config     = new_config
+            self.model_path = new_config.model_path
+            self.device     = self._get_device(new_config.device)
+            self.model      = self._load_model()
+        else:
+            self.config = new_config
 
     def _get_device(self, device: Union[str, None]) -> torch.device:
         if device:

@@ -16,38 +16,30 @@ from gtts import gTTS
 from pydub import AudioSegment
 from pathlib import Path
 
+
 from config_models import SpeechConfig
-from config_models import ModelConfig
+from config_models import SpeechModelsConfig
 
 logger = logging.getLogger(__name__)
 
 class SpeechProcessor:
-    def __init__(self, config: SpeechConfig, models: ModelConfig):
-        self.config = config
-        self.engine = pyttsx3.init()
-        self.language = config.language
-        self.mode = config.mode
+    def __init__(self, config: SpeechConfig, models: SpeechModelsConfig):
+        self.config     = config
         self.model_path = models.vosk
-
-        self.set_voice(self.language)
-
-        if not os.path.exists(self.model_path):
-            raise FileNotFoundError(f"Модель не найдена: {self.model_path}")
+        self.engine     = pyttsx3.init()
+        self.set_voice(config.language)
         self.vosk_model = Model(self.model_path)
-        logger.info("SpeechProcessor: язык=%s, режим=%s, модель=%s", self.language, self.mode, self.model_path)
+        logger.info("SpeechProcessor: язык=%s, режим=%s, модель=%s",
+                    config.language, config.mode, self.model_path)
 
-    def update_config(self, new_config: SpeechConfig, new_models: ModelConfig) -> None:
-        model_path_changed = self.model_path != new_models.vosk
-        voice_lang_changed = self.config.language != new_config.language
-
-        self.config = new_config
-        self.model_path = new_models.vosk
-
-        if model_path_changed:
-            self.vosk_model = Model(self.model_path)
-
-        if voice_lang_changed:
-            self.set_voice(self.config.language)
+    def __init__(self, config: SpeechConfig, models: SpeechModelsConfig):
+        self.config     = config
+        self.model_path = models.vosk
+        self.engine     = pyttsx3.init()
+        self.set_voice(config.language)
+        self.vosk_model = Model(self.model_path)
+        logger.info("SpeechProcessor: язык=%s, режим=%s, модель=%s",
+                    config.language, config.mode, self.model_path)
 
     def set_voice(self, language):
         voices = self.engine.getProperty('voices')

@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import List
 
@@ -16,11 +18,47 @@ class QuantizationMode(Enum):
 
 
 @dataclass
-class ModelConfig:
-    qa: str
-    text: str
-    embedding: str
-    vosk: str
+class DeterministicConfig:
+    num_beams: int 
+    length_penalty: float 
+    no_repeat_ngram_size: int 
+
+
+@dataclass
+class StochasticConfig:
+    temperature: float 
+    top_p: float 
+    top_k: int 
+    typical_p: float 
+    num_beams: int 
+
+
+@dataclass
+class GenerationConfig:
+    max_new_tokens: int 
+    num_return_sequences: int 
+    no_repeat_ngram_size: int = 3
+    repetition_penalty: float = 1.1
+    early_stopping: bool = False
+    enable_cpu_offload: bool = True
+    deterministic: DeterministicConfig = field(default_factory=DeterministicConfig)
+    stochastic:   StochasticConfig     = field(default_factory=StochasticConfig)
+
+
+@dataclass
+class EmbeddingHandlerConfig:
+    device: str
+    model_path: str
+
+
+@dataclass
+class AnswerGeneratorConfig:
+    device: str
+    quantization: QuantizationMode
+    generation_mode: GenerationMode
+    text_model_path: str
+    qa_model_path: str
+    generation: GenerationConfig
 
 
 @dataclass
@@ -31,6 +69,24 @@ class TextSplitterConfig:
     overlap_sentences: int
     paragraphs_per_context: int
     overlap_lines: int
+
+
+@dataclass
+class DocumentProcessingConfig:
+    image_enabled: bool
+    allowed_extensions: List[str]
+
+
+@dataclass
+class ImageCaptioningConfig:
+    device: str
+    model_name: str
+
+
+@dataclass
+class DocumentManagerConfig:
+    processing: DocumentProcessingConfig
+    captioning: ImageCaptioningConfig
 
 
 @dataclass
@@ -47,53 +103,29 @@ class FileMetadataDBConfig:
 
 
 @dataclass
+class DialogHistoryConfig:
+    db_path: str
+
+
+@dataclass
 class SpeechConfig:
     language: str
     mode: str
 
 
 @dataclass
-class ImageCaptioningConfig:
-    device: str
-    model_name: str
+class SpeechModelsConfig:
+    vosk: str
 
 
 @dataclass
-class DocumentManagerConfig:
-    image_enabled: bool
-
-
-@dataclass
-class DeterministicConfig:
-    num_beams: int
-    length_penalty: float
-    no_repeat_ngram_size: int
-
-
-@dataclass
-class StochasticConfig:
-    temperature: float
-    top_p: float
-    top_k: int
-    typical_p: float
-    num_beams: int
-
-
-@dataclass
-class GenerationConfig:
-    max_new_tokens: int
-    num_return_sequences: int
-    no_repeat_ngram_size: int
-    repetition_penalty: float
-    early_stopping: bool
-    deterministic: DeterministicConfig
-    stochastic: StochasticConfig
-    enable_cpu_offload: bool
-
-
-@dataclass
-class DialogHistoryConfig:
-    db_path: str
+class LoggingConfig:
+    level: str
+    file: str
+    format: str
+    max_bytes: int
+    backup_count: int
+    console_level: str
 
 
 @dataclass
@@ -103,31 +135,28 @@ class DefaultMessages:
 
 
 @dataclass
-class LoggingConfig:
-    level: str            
-    file: str             
-    format: str           
-    max_bytes: int        
-    backup_count: int     
-    console_level: str    
+class TextDisplayConfig:
+    show_text_source_info: bool
+    show_text_fragments: bool
 
+@dataclass
+class DialogManagerConfig:
+    prompt_template: str
+    show_text_source_info: bool
+    show_text_fragments: bool
+    messages: DefaultMessages
 
 @dataclass
 class AppConfig:
-    device: str
     documents_folder: str
-    quantization: QuantizationMode
-    generation_mode: GenerationMode
-    allowed_file_extensions: List[str]
-    models: ModelConfig
+    embedding_handler: EmbeddingHandlerConfig
+    answer_generator: AnswerGeneratorConfig
     splitter: TextSplitterConfig
+    document_manager: DocumentManagerConfig
     embedding_storage: EmbeddingStorageConfig
     metadata_storage: FileMetadataDBConfig
-    speech: SpeechConfig
-    image_captioning: ImageCaptioningConfig
-    document_processing: DocumentManagerConfig
-    generation: GenerationConfig
-    dialog_prompt: str
     dialog_history: DialogHistoryConfig
-    messages: DefaultMessages
+    speech: SpeechConfig
+    speech_models: SpeechModelsConfig
+    dialog_manager: DialogManagerConfig
     logging: LoggingConfig

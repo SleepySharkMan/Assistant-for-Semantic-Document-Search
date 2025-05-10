@@ -1,14 +1,19 @@
 import sqlite3
+import logging
 from typing import List, Dict
 from pathlib import Path
 
+from config_models import DialogHistoryConfig
+
+logger = logging.getLogger(__name__)
 
 class DialogHistory:
-    def __init__(self, db_path: str = "dialog_history.db"):
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+    def __init__(self, config: DialogHistoryConfig):
+        Path(config.db_path).parent.mkdir(parents=True, exist_ok=True)
+        self.config = config
+        self.conn = sqlite3.connect(config.db_path, check_same_thread=False)
         self._create_table()
-        logger.info("DialogHistory подключена: %s", db_path)
+        logger.info("DialogHistory подключена: %s", config.db_path)
 
     def _create_table(self):
         self.conn.execute("""
@@ -56,6 +61,13 @@ class DialogHistory:
 
     def close(self):
         self.conn.close()
+
+    def update_config(self, new_config: DialogHistoryConfig) -> None:
+        if new_config.db_path != self.config.db_path:
+            self.conn.close()
+            self.__init__(new_config)
+        else:
+            self.config = new_config
 
     def __del__(self):
         if hasattr(self, "conn"):

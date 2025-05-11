@@ -96,17 +96,6 @@ class EmbeddingStorageConfig:
     embedding_dim: int
     similarity_threshold: float
 
-
-@dataclass
-class FileMetadataDBConfig:
-    db_path: str
-
-
-@dataclass
-class DialogHistoryConfig:
-    db_path: str
-
-
 @dataclass
 class SpeechConfig:
     language: str
@@ -147,6 +136,10 @@ class DialogManagerConfig:
     messages: DefaultMessages
 
 @dataclass
+class DatabaseConfig:
+    url: str
+
+@dataclass
 class AppConfig:
     documents_folder: str
     embedding_handler: EmbeddingHandlerConfig
@@ -154,9 +147,8 @@ class AppConfig:
     splitter: TextSplitterConfig
     document_manager: DocumentManagerConfig
     embedding_storage: EmbeddingStorageConfig
-    metadata_storage: FileMetadataDBConfig
-    dialog_history: DialogHistoryConfig
     speech: SpeechConfig
     speech_models: SpeechModelsConfig
     dialog_manager: DialogManagerConfig
     logging: LoggingConfig
+    database: DatabaseConfig

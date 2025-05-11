@@ -66,13 +66,9 @@ embedding_storage:
   embedding_dim: 384
   similarity_threshold: 0.5
 
-# === FileMetadataDB ===
-metadata_storage:
-  db_path: "data/file_metadata.db"
-
-# === DialogHistory ===
-dialog_history:
-  db_path: "data/dialog_history.db"
+# === DB ===
+database:
+  url: "sqlite:///data/database.db"
 
 # === SpeechProcessor ===
 speech:

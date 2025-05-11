@@ -3,6 +3,7 @@ import os
 
 from flask import Flask
 from config_loader import ConfigLoader
+from modules.db import DBManager
 from modules.document_manager import DocumentManager
 from modules.file_metadata_db import FileMetadataDB
 from modules.embedding_handler import EmbeddingHandler
@@ -29,41 +30,40 @@ from pathlib import Path
 def create_app():
     # === Загрузка конфигурации ===
     config = ConfigLoader("config.yaml").full
-
     setup_logging(config)
+
     logger = logging.getLogger(__name__)
     logger.info("Логирование инициализировано")
 
-    # === Инициализация компонентов ===
-    metadata_db      = FileMetadataDB(config.metadata_storage)
+    # === БД ===
+    db = DBManager(config.database)
+    db.init_db()
+    
+    # === Компоненты ===
+    metadata_db      = FileMetadataDB(db.session_scope)
+    history          = DialogHistory(db.session_scope)
     document_manager = DocumentManager(config.document_manager, metadata_db)
     embedder         = EmbeddingHandler(config.embedding_handler)
     storage          = EmbeddingStorage(config.embedding_storage)
     generator        = AnswerGeneratorAndValidator(config.answer_generator)
     splitter         = TextContextSplitter(config.splitter)
     speech           = SpeechProcessor(config.speech, config.speech_models)
-    history          = DialogHistory(config.dialog_history)
 
-    # === Индексация файлов из папки ===
-    logger.info("Начало индексации папки %s", config.documents_folder)
+    # === Индексация документов ===
     folder_path = Path(config.documents_folder)
-    added = 0
-
+    logger.info("Индексация документов в: %s", folder_path)
     if folder_path.exists() and folder_path.is_dir():
         for file_path in folder_path.iterdir():
             if not file_path.is_file():
                 continue
             if not document_manager.is_supported_format(file_path):
                 continue
-
             text = document_manager.get_text(file_path)
             if not text or len(text.strip()) < 30:
                 continue
-
             file_hash = document_manager.get_hash(file_path)
-            if metadata_db.get_file_by_hash(file_hash):
+            if not file_hash or metadata_db.get_file_by_hash(file_hash):
                 continue
-
             metadata = document_manager.get_metadata(file_path)
             metadata_db.add_file(
                 path=str(file_path),
@@ -71,7 +71,6 @@ def create_app():
                 size=metadata["size"],
                 file_hash=file_hash
             )
-
             contexts = splitter.split_by_paragraphs(text)
             for i, ctx in enumerate(contexts):
                 chunk_id = f"{file_hash}_chunk{i}"
@@ -84,21 +83,11 @@ def create_app():
                         "content": (ctx[:300] + ".") if len(ctx) > 300 else ctx
                     }
                 )
-            added += 1
 
-    logger.info("Добавлено новых файлов: %d", added)
+    # === Инициализация Flask-приложения ===
+    from modules.dialog_manager import DialogManager
+    dialog_manager = DialogManager(embedder, storage, generator, speech, history, config.dialog_manager)
 
-    # === Создание диалогового менеджера ===
-    dialog_manager = DialogManager(
-        embedder,
-        storage,
-        generator,
-        speech,
-        history,
-        config.dialog_manager
-    )
-
-    # === Flask-приложение ===
     app = Flask(__name__)
     register_routes(app, dialog_manager)
     return app

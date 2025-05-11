@@ -1,6 +1,7 @@
 import json
 import yaml
 import logging
+from enum import Enum
 from pathlib import Path
 from dataclasses import asdict, is_dataclass, fields
 from typing import get_origin, get_args, get_type_hints
@@ -44,32 +45,42 @@ class ConfigLoader:
 
     def _from_dict(self, cls, data: dict):
         """
-        Рекурсивно конвертирует словарь в dataclass, включая вложенные структуры,
-        резолвя типы через get_type_hints (PEP 563).
+        Рекурсивно конвертирует словарь в dataclass, включая:
+        - поля–Enum: строка → Enum-член,
+        - вложенные dataclass’ы,
+        - списки вложенных dataclass’ов.
         """
         if not is_dataclass(cls):
             return data
 
         kwargs = {}
-        # Получаем реальные типы полей, разрешая ForwardRef
         hints = get_type_hints(cls)
+
         for field in fields(cls):
             key = field.name
+            if key not in data:
+                continue
+            value = data[key]
             field_type = hints.get(key, field.type)
-            value = data.get(key)
-            if value is None:
+
+            if isinstance(field_type, type) and issubclass(field_type, Enum):
+                try:
+                    value = field_type(value)      
+                except ValueError:
+                    value = field_type[value]      
+                kwargs[key] = value
                 continue
 
             origin = get_origin(field_type)
             args   = get_args(field_type)
 
-            # Если поле само — dataclass, рекурсивно конвертим
             if is_dataclass(field_type):
-                value = self._from_dict(field_type, value)
+                kwargs[key] = self._from_dict(field_type, value)
+                continue
 
-            # Если это список вложенных dataclass’ов
-            elif origin is list and len(args) == 1 and is_dataclass(args[0]):
-                value = [self._from_dict(args[0], item) for item in value]
+            if origin is list and len(args) == 1 and is_dataclass(args[0]):
+                kwargs[key] = [self._from_dict(args[0], item) for item in value]
+                continue
 
             kwargs[key] = value
 

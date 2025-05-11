@@ -14,8 +14,6 @@ from vosk import Model
 from vosk import KaldiRecognizer
 from gtts import gTTS
 from pydub import AudioSegment
-from pathlib import Path
-
 
 from config_models import SpeechConfig
 from config_models import SpeechModelsConfig
@@ -23,15 +21,6 @@ from config_models import SpeechModelsConfig
 logger = logging.getLogger(__name__)
 
 class SpeechProcessor:
-    def __init__(self, config: SpeechConfig, models: SpeechModelsConfig):
-        self.config     = config
-        self.model_path = models.vosk
-        self.engine     = pyttsx3.init()
-        self.set_voice(config.language)
-        self.vosk_model = Model(self.model_path)
-        logger.info("SpeechProcessor: язык=%s, режим=%s, модель=%s",
-                    config.language, config.mode, self.model_path)
-
     def __init__(self, config: SpeechConfig, models: SpeechModelsConfig):
         self.config     = config
         self.model_path = models.vosk

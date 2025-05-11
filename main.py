@@ -11,7 +11,6 @@ from modules.embedding_storage import EmbeddingStorage
 from modules.answer_generator import AnswerGeneratorAndValidator
 from modules.text_splitter import TextContextSplitter
 from modules.speech_processor import SpeechProcessor
-from modules.dialog_manager import DialogManager
 from modules.dialog_history import DialogHistory
 from website import register_routes
 from dataclasses import is_dataclass, asdict

@@ -1,103 +1,93 @@
 import io
-import os
-import wave
 import json
 import logging
+import tempfile
+import wave
+from pathlib import Path
+from typing import Union
 
 import pyttsx3
-import requests
-import sounddevice as sd
-import speech_recognition as sr
-import numpy as np
-
-from vosk import Model
-from vosk import KaldiRecognizer
-from gtts import gTTS
+import vosk
 from pydub import AudioSegment
 
 from config_models import SpeechConfig
-from config_models import SpeechModelsConfig
 
 logger = logging.getLogger(__name__)
 
-class SpeechProcessor:
-    def __init__(self, config: SpeechConfig, models: SpeechModelsConfig):
-        self.config     = config
-        self.model_path = models.vosk
-        self.engine     = pyttsx3.init()
-        self.set_voice(config.language)
-        self.vosk_model = Model(self.model_path)
-        logger.info("SpeechProcessor: язык=%s, режим=%s, модель=%s",
-                    config.language, config.mode, self.model_path)
+audio_bytes_like = Union[bytes, io.BytesIO, AudioSegment]
 
-    def set_voice(self, language):
-        voices = self.engine.getProperty('voices')
-        target_voice = 'russian' if language == 'ru' else 'english'
+class SpeechProcessor: 
+    def __init__(self, config: SpeechConfig):
+        self.config = config
+        self.model_path = Path(config.model)
+        if not self.model_path.exists():
+            raise FileNotFoundError(f"Vosk‑модель не найдена: {self.model_path}")
 
-        for voice in voices:
-            if target_voice in voice.name.lower():
-                self.engine.setProperty('voice', voice.id)
-                return
+        # TTS
+        self._engine = pyttsx3.init()
+        self._set_voice(config.language)
 
-        logger.warning("Голос для языка '%s' не найден", language)
+        # STT
+        self._sample_rate = 16_000
+        self._rec_model = vosk.Model(str(self.model_path))
+        logger.info("SpeechProcessor инициализирован — язык=%s, offline‑only, модель=%s",
+                    config.language, self.model_path)
 
-    def check_internet(self):
+    def text_to_speech(self, text: str) -> AudioSegment:
+        """Преобразует *text* в WAV‑аудио и возвращает **AudioSegment**."""
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            tmp_path = Path(tmp.name)
         try:
-            requests.get("https://www.google.com", timeout=3)
-            return True
-        except (requests.ConnectionError, requests.Timeout):
-            return False
+            self._engine.save_to_file(text, str(tmp_path))
+            self._engine.runAndWait()
+            audio = AudioSegment.from_wav(tmp_path)
+            return audio
+        finally:
+            tmp_path.unlink(missing_ok=True)
 
-    def text_to_speech(self, text):
-        mode = self.mode
-        if mode == 'auto':
-            mode = 'online' if self.check_internet() else 'offline'
+    def speech_to_text(self, audio_data: audio_bytes_like) -> str:
+        """Преобразует WAV‑аудио (bytes/BytesIO/AudioSegment) в строку текста."""
+        wav_path = self._to_wav_temp(audio_data)
+        try:
+            with wave.open(str(wav_path), "rb") as wf:
+                if wf.getnchannels() != 1 or wf.getsampwidth() != 2:
+                    raise ValueError("Аудио должно быть моно 16‑бит")
 
-        if mode == 'online':
-            tts = gTTS(text=text, lang=self.language)
-            audio_bytes = io.BytesIO()
-            tts.write_to_fp(audio_bytes)
-            audio_bytes.seek(0)
-            return AudioSegment.from_mp3(audio_bytes)
+                recognizer = vosk.KaldiRecognizer(self._rec_model, wf.getframerate())
+                while True:
+                    data = wf.readframes(4000)
+                    if len(data) == 0:
+                        break
+                    recognizer.AcceptWaveform(data)
+                result = json.loads(recognizer.FinalResult())
+                return result.get("text", "").strip()
+        finally:
+            wav_path.unlink(missing_ok=True)
+
+    def _set_voice(self, language: str) -> None:
+        voices = self._engine.getProperty("voices")
+        target = "russian" if language.startswith("ru") else "english"
+        for voice in voices:
+            if target in voice.name.lower():
+                self._engine.setProperty("voice", voice.id)
+                return
+        logger.warning("Голос для языка '%s' не найден — используется дефолтный", language)
+
+    def _to_wav_temp(self, audio: audio_bytes_like) -> Path:
+        """Сохраняет *audio* как WAV и возвращает путь к временному файлу."""
+        if isinstance(audio, AudioSegment):
+            seg = audio
         else:
-            audio_bytes = io.BytesIO()
-            self.engine.save_to_file(text, 'temp_audio.wav')
-            self.engine.runAndWait()
-            with open('temp_audio.wav', 'rb') as f:
-                audio_bytes.write(f.read())
-            os.remove('temp_audio.wav')
-            audio_bytes.seek(0)
-            return AudioSegment.from_wav(audio_bytes)
+            if isinstance(audio, io.BytesIO):
+                raw = audio.getvalue()
+            elif isinstance(audio, bytes):
+                raw = audio
+            else:
+                raise TypeError("audio_data должен быть bytes, BytesIO или AudioSegment")
+            seg = AudioSegment.from_file(io.BytesIO(raw))
 
-    def play_audio(self, audio_segment):
-        samples = np.array(audio_segment.get_array_of_samples())
-        sd.play(samples, audio_segment.frame_rate)
-        sd.wait()
-
-    def speech_to_text(self, audio_bytes):
-        mode = self.mode
-        if mode == 'auto':
-            mode = 'online' if self.check_internet() else 'offline'
-
-        if mode == 'online':
-            recognizer = sr.Recognizer()
-            with sr.AudioFile(audio_bytes) as source:
-                audio = recognizer.record(source)
-            return recognizer.recognize_google(audio, language=self.language)
-        else:
-            audio_bytes.seek(0)
-            wf = wave.open(audio_bytes, "rb")
-            if not (wf.getnchannels() == 1 and wf.getsampwidth() == 2 and wf.getframerate() in (8000, 16000)):
-                raise ValueError("Аудио должно быть в формате WAV: 1 канал, 16 бит, 8/16 кГц")
-
-            recognizer = KaldiRecognizer(self.vosk_model, wf.getframerate())
-            result = []
-            while True:
-                data = wf.readframes(4000)
-                if not data:
-                    break
-                if recognizer.AcceptWaveform(data):
-                    result.append(json.loads(recognizer.Result())['text'])
-
-            result.append(json.loads(recognizer.FinalResult())['text'])
-            return ' '.join(result)
+        # Приводим к 16kHz / моно / 16‑bit
+        seg = seg.set_frame_rate(self._sample_rate).set_channels(1).set_sample_width(2)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+            seg.export(tmp, format="wav")
+            return Path(tmp.name)

@@ -1,4 +1,5 @@
 import logging
+from itertools import zip_longest
 from flask import request, jsonify, send_file, render_template
 from io import BytesIO
 
@@ -12,54 +13,70 @@ def register_routes(app, dialog_manager):
 
     @app.route("/api/message", methods=["POST"])
     def handle_text_message():
-        data = request.get_json() or {}
-        user_id = data.get("user_id")
-        question = data.get("message", "").strip()
-        show_source_info   = bool(data.get("show_source_info"))
-        show_text_fragments = bool(data.get("show_text_fragments"))
+        data = request.get_json(silent=True) or {}
+        user_id  = (data.get("user_id")  or "").strip()
+        question = (data.get("message") or "").strip()
 
-        # Валидация
+        # запрошенные флаги
+        show_src  = bool(data.get("show_source_info"))
+        show_frag = bool(data.get("show_text_fragments"))
+
+        logger.info("HTTP %s %s user_id=%r", request.method, request.path, user_id)
+
         if not user_id:
-            return jsonify({'error': 'user_id обязателен'}), 400
+            logger.warning("Нет user_id в запросе: %s", data)
+            return jsonify({"error": "user_id обязателен"}), 400
         if not question:
-            return jsonify({'error': 'Вопрос не может быть пустым.'}), 400
+            logger.warning("Пустой вопрос. user_id=%s", user_id)
+            return jsonify({"error": "Вопрос не может быть пустым."}), 400
 
+        # ── обращаемся к DialogManager ───────────────────────
         try:
             response = dialog_manager.answer_text(
                 user_id=user_id,
                 question=question,
-                request_source_info=show_source_info,
-                request_fragments=show_text_fragments
+                request_source_info=show_src,
+                request_fragments=show_frag
             )
-        except Exception:
-            logger.exception("Ошибка при обработке текстового запроса")
-            return jsonify({'error': 'Ошибка при обработке запроса.'}), 500
+        except Exception as exc:
+            logger.exception("Ошибка answer_text: %s", exc)
+            return jsonify({"error": "Ошибка при обработке запроса."}), 500
 
-        # Собираем финальный ответ
-        final = {'answer': response.get('answer')}
+        # ── собираем итог ───────────────────────────────────
+        final: dict = {"answer": response.get("answer", "")}
 
-        has_src  = 'sources'   in response and response['sources']
-        has_frag = 'fragments' in response and response['fragments']
+        sources   = response.get("sources")     # None ⇒ источники не запрашивались
+        fragments = response.get("fragments")   # None ⇒ фрагменты не запрашивались
 
-        if has_src and has_frag:
-            # 1) оба — группируем по файлу
-            grouped = {}
-            for src, frag in zip(response['sources'], response['fragments']):
-                grouped.setdefault(src, []).append(frag)
-            final['results'] = [
-                {'source': src, 'fragments': frags}
-                for src, frags in grouped.items()
-            ]
+        # Источники запрошены, но ни одного имени не нашли → «unknown»
+        if sources is not None and not sources:
+            sources = ["unknown"] * (len(fragments) if fragments else 1)
 
-        elif has_src:
-            # 2) только источники — возвращаем уникальные
-            final['sources'] = list(dict.fromkeys(response['sources']))
+        # a) обе части есть → формируем results
+        if sources is not None and fragments is not None:
+            from itertools import zip_longest
 
-        elif has_frag:
-            # 3) только фрагменты — возвращаем список
-            final['fragments'] = response['fragments']
+            grouped: dict[str, list[str]] = {}
+            for src, frag in zip_longest(sources, fragments, fillvalue=None):
+                if src is None and frag is None:
+                    continue
+                key = src or "unknown"
+                if frag:
+                    grouped.setdefault(key, []).append(frag)
 
-        # 4) ни того, ни другого — останется только 'answer'
+            if grouped:
+                final["results"] = [
+                    {"source": k, "fragments": v} for k, v in grouped.items()
+                ]
+
+        # b) только источники
+        elif sources is not None:
+            final["sources"] = list(dict.fromkeys(sources))
+
+        # c) только фрагменты
+        elif fragments is not None:
+            final["fragments"] = fragments
+
         return jsonify(final), 200
 
     @app.route("/api/history", methods=["GET"])

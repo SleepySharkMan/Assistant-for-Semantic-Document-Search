@@ -99,13 +99,7 @@ class EmbeddingStorageConfig:
 @dataclass
 class SpeechConfig:
     language: str
-    mode: str
-
-
-@dataclass
-class SpeechModelsConfig:
-    vosk: str
-
+    model: str
 
 @dataclass
 class LoggingConfig:
@@ -148,7 +142,6 @@ class AppConfig:
     document_manager: DocumentManagerConfig
     embedding_storage: EmbeddingStorageConfig
     speech: SpeechConfig
-    speech_models: SpeechModelsConfig
     dialog_manager: DialogManagerConfig
     logging: LoggingConfig
     database: DatabaseConfig

@@ -8,7 +8,7 @@ let userInput;
 let userId = getOrCreateUserId();
 
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("🧑‍💻 User ID:", userId);
+  console.log("User ID:", userId);
 
   const sendBtn = document.getElementById("send-btn");
   const micBtn = document.getElementById("mic-btn");

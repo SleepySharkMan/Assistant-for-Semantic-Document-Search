@@ -46,7 +46,7 @@ def create_app():
     storage          = EmbeddingStorage(config.embedding_storage)
     generator        = AnswerGeneratorAndValidator(config.answer_generator)
     splitter         = TextContextSplitter(config.splitter)
-    speech           = SpeechProcessor(config.speech, config.speech_models)
+    speech           = SpeechProcessor(config.speech)
 
     # === Индексация документов ===
     folder_path = Path(config.documents_folder)

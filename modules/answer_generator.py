@@ -68,16 +68,26 @@ class AnswerGeneratorAndValidator:
         self.quantization = mode
 
     def _load_models(self):
-        qa_path = self.config.qa_model_path
+        qa_path   = self.config.qa_model_path
         text_path = self.config.text_model_path
-        offload = self.config.generation.enable_cpu_offload
-        quant = self.quantization
-        dtype = torch.float16 if quant in [QuantizationMode.FP16, QuantizationMode.NF4] else torch.float32
+        offload   = self.config.generation.enable_cpu_offload
+        quant     = self.quantization
+        dtype     = torch.float16 if quant in (QuantizationMode.FP16, QuantizationMode.NF4) else torch.float32
 
+        # ── вычисляем индекс устройства для transformers ──
+        device_idx = -1 if self.device.type == "cpu" else (self.device.index if self.device.index is not None else 0)
+
+        # ── QA ────────────────────────────────────────────
         self.qa_tokenizer = AutoTokenizer.from_pretrained(qa_path)
-        self.qa_model = AutoModelForQuestionAnswering.from_pretrained(qa_path).to(self.device)
-        self.qa_pipeline = pipeline("question-answering", model=self.qa_model, tokenizer=self.qa_tokenizer, device=self.device)
+        self.qa_model     = AutoModelForQuestionAnswering.from_pretrained(qa_path).to(self.device)
+        self.qa_pipeline  = pipeline(
+            task="question-answering",
+            model=self.qa_model,
+            tokenizer=self.qa_tokenizer,
+            device=device_idx            # <-- INT (-1 = CPU, 0/1/…) вместо torch.device
+        )
 
+        # ── генератор текста ──────────────────────────────
         bnb_config = None
         if quant == QuantizationMode.NF4:
             bnb_config = BitsAndBytesConfig(
@@ -92,24 +102,17 @@ class AnswerGeneratorAndValidator:
                 llm_int8_enable_fp32_cpu_offload=offload
             )
 
-        self.text_tokenizer = AutoTokenizer.from_pretrained(
-            text_path,
-            trust_remote_code=True
-        )
+        self.text_tokenizer = AutoTokenizer.from_pretrained(text_path, trust_remote_code=True)
 
         model_kwargs = {
-            "trust_remote_code": True,
             "torch_dtype": dtype,
+            "trust_remote_code": True,
             "device_map": "auto"
         }
-
         if bnb_config:
             model_kwargs["quantization_config"] = bnb_config
 
-        self.text_model = AutoModelForCausalLM.from_pretrained(
-            text_path,
-            **model_kwargs
-        )
+        self.text_model = AutoModelForCausalLM.from_pretrained(text_path, **model_kwargs)
 
     def _configure_generation(self):
         mode = self.config.generation_mode
@@ -161,8 +164,14 @@ class AnswerGeneratorAndValidator:
                 **self.generation_config
             )
 
-            raw_answer = self.text_tokenizer.decode(outputs[0], skip_special_tokens=True)
-            return raw_answer[len(prompt):].strip()
+            input_len = inputs["input_ids"].shape[1]
+
+            generated_ids = outputs[0][input_len:]
+
+            answer = self.text_tokenizer.decode(
+                generated_ids, skip_special_tokens=True
+            ).strip()
+            return answer
         except Exception as e:
             logger.error("Ошибка генерации: %s", e, exc_info=True)
             return "Извините, возникла ошибка генерации ответа."

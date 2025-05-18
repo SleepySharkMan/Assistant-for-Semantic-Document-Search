@@ -73,10 +73,7 @@ database:
 # === SpeechProcessor ===
 speech:
   language: "ru"
-  mode: "auto"                  # auto | online | offline
-
-speech_models:                  # SpeechModelsConfig
-  vosk: "models/vosk-model-small-ru-0.22"
+  model: "models/vosk-model-small-ru-0.22"
 
 # -------------------------------------------------
 #   Сервисные настройки

@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 
 from modules.embedding_handler import EmbeddingHandler
 from modules.embedding_storage import EmbeddingStorage
-from modules.answer_generator import AnswerGeneratorAndValidator
+from modules.answer_generator import AnswerGenerator
 from modules.speech_processor import SpeechProcessor
 from modules.dialog_history import DialogHistory
 from config_models import DialogManagerConfig
@@ -20,7 +20,7 @@ class DialogManager:
         self,
         embedder: EmbeddingHandler,
         storage: EmbeddingStorage,
-        generator: AnswerGeneratorAndValidator,
+        generator: AnswerGenerator,
         speech: SpeechProcessor,
         history: DialogHistory,
         config: DialogManagerConfig
@@ -122,7 +122,7 @@ class DialogManager:
         *,
         embedder: EmbeddingHandler = None,
         storage: EmbeddingStorage = None,
-        generator: AnswerGeneratorAndValidator = None,
+        generator: AnswerGenerator = None,
         speech: SpeechProcessor = None,
         config: DialogManagerConfig = None
     ) -> None:

@@ -14,7 +14,7 @@ from config_models import GenerationMode
 
 logger = logging.getLogger(__name__)
 
-class AnswerGeneratorAndValidator:
+class AnswerGenerator:
     def __init__(self, config: AnswerGeneratorConfig):
         self.config = config
         self._detect_devices()
@@ -74,20 +74,17 @@ class AnswerGeneratorAndValidator:
         quant     = self.quantization
         dtype     = torch.float16 if quant in (QuantizationMode.FP16, QuantizationMode.NF4) else torch.float32
 
-        # ── вычисляем индекс устройства для transformers ──
         device_idx = -1 if self.device.type == "cpu" else (self.device.index if self.device.index is not None else 0)
 
-        # ── QA ────────────────────────────────────────────
         self.qa_tokenizer = AutoTokenizer.from_pretrained(qa_path)
         self.qa_model     = AutoModelForQuestionAnswering.from_pretrained(qa_path).to(self.device)
         self.qa_pipeline  = pipeline(
             task="question-answering",
             model=self.qa_model,
             tokenizer=self.qa_tokenizer,
-            device=device_idx            # <-- INT (-1 = CPU, 0/1/…) вместо torch.device
+            device=device_idx            
         )
 
-        # ── генератор текста ──────────────────────────────
         bnb_config = None
         if quant == QuantizationMode.NF4:
             bnb_config = BitsAndBytesConfig(

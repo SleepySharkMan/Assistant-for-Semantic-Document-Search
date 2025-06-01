@@ -10,13 +10,13 @@ embedding_handler:
 # === AnswerGeneratorAndValidator ===
 answer_generator:
   device: "cuda:0"
-  quantization: "nf4"          # fp32 | fp16 | int8 | nf4
+  quantization: "int8"         # fp32 | fp16 | int8 | nf4
   generation_mode: "stochastic"  # deterministic | stochastic
   text_model_path: "models/Qwen-7B-Chat"
-  qa_model_path:   "models/mdeberta-v3-base-squad2"
+  qa_model_path: "models/mdeberta-v3-base-squad2"
 
   generation:
-    max_new_tokens: 2048
+    max_new_tokens: 100
     num_return_sequences: 1
     no_repeat_ngram_size: 3
     repetition_penalty: 1.1
@@ -30,16 +30,17 @@ answer_generator:
 
     stochastic:
       temperature: 0.9
-      top_p: 0.7
-      top_k: 30
+      top_p: 0.8
+      top_k: 40
       typical_p: 0.9
       num_beams: 1
 
 # === TextContextSplitter ===
 splitter:
+  method: sentences
   words_per_context: 150
   overlap_words: 50
-  sentences_per_context: 3
+  sentences_per_context: 1
   overlap_sentences: 1
   paragraphs_per_context: 2
   overlap_lines: 1
@@ -48,15 +49,9 @@ splitter:
 document_manager:
   processing:                    # DocumentProcessingConfig
     image_enabled: true
-    allowed_extensions:
-      - ".txt"
-      - ".pdf"
-      - ".docx"
-      - ".csv"
-      - ".xlsx"
-
+    allowed_extensions: .txt,.pdf,.docx
   captioning:                    # ImageCaptioningConfig
-    device: "cuda"
+    device: "cuda:0"
     model_name: "Salesforce/blip-image-captioning-base"
 
 # === EmbeddingStorage ===
@@ -98,7 +93,6 @@ dialog_manager:
 logging:
   level: INFO
   file: logs/app.log
-  format: "%(asctime)s %(levelname)-8s [%(name)s] %(message)s"
   max_bytes: 10485760          # 10 MB
   backup_count: 5
   console_level: WARNING

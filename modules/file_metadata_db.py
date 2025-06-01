@@ -30,20 +30,20 @@ class FileMetadataDB:
         file_type: str,
         size: int,
         file_hash: str,
+        splitter_method: Optional[str] = None,
     ) -> Optional[int]:
-        """Добавить новую запись о файле.
-
-        Возвращает *id* вставленной или уже существующей записи. Если другой
-        процесс уже добавил файл с тем же ``hash``, метод вернёт *id* найденной
-        строки. Возвращает *None* только если существующая строка почему‑то не
-        нашлась (в нормальной работе такого быть не должно).
-        """
         path = str(path)
         with self.session_factory() as session:
             try:
-                new_file = File(path=path, file_type=file_type, size=size, hash=file_hash)
+                new_file = File(
+                    path=path,
+                    file_type=file_type,
+                    size=size,
+                    hash=file_hash,
+                    splitter_method=splitter_method
+                )
                 session.add(new_file)
-                session.flush()  # получаем PK без явного commit
+                session.flush()
                 return new_file.id
             except IntegrityError:
                 session.rollback()
@@ -91,16 +91,6 @@ class FileMetadataDB:
             return True
 
     def upsert_metadata(self, path: str | Path, metadata: dict) -> int:
-        """Вставить или обновить запись *File* по пути.
-
-        Параметры:
-            path: Путь к файлу на диске.
-            metadata: Словарь с опциональными ключами ``mime_type``, ``size``
-                (int) и ``hash``.
-
-        Возвращает:
-            Первичный ключ обновлённой или вставленной строки.
-        """
         path = str(path)
         with self.session_factory() as session:
             file = session.query(File).filter_by(path=path).first()
@@ -110,6 +100,7 @@ class FileMetadataDB:
                     file_type=metadata.get("mime_type", "unknown"),
                     size=metadata.get("size", 0),
                     hash=metadata.get("hash", ""),
+                    splitter_method=metadata.get("splitter_method")
                 )
                 session.add(file)
                 session.flush()
@@ -120,6 +111,8 @@ class FileMetadataDB:
                     file.size = size
                 if (h := metadata.get("hash")):
                     file.hash = h
+                if (method := metadata.get("splitter_method")):
+                    file.splitter_method = method
             return file.id
 
     def add_image_metadata(
@@ -150,10 +143,19 @@ class FileMetadataDB:
         with self.session_factory() as session:
             return session.get(Image, file_id)
 
-    def get_all_files(self) -> List[File]:
-        """Вернуть список всех объектов *File*."""
+    def get_all_files(self):
         with self.session_factory() as session:
-            return session.query(File).all()
+            return [
+                {
+                    "path": f.path,
+                    "size": f.size,
+                    "created_at": f.created_at,
+                    "splitter_method": f.splitter_method,
+                    "file_type": f.file_type,
+                    "file_hash": f.hash,
+                }
+                for f in session.query(File).all()
+            ]
 
     def get_files_by_extension(self, extension: str | None = None) -> List[str]:
         """Вернуть пути файлов с указанным расширением (регистр не учитывается).

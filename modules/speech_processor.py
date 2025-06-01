@@ -30,7 +30,7 @@ class SpeechProcessor:
         # STT
         self._sample_rate = 16_000
         self._rec_model = vosk.Model(str(self.model_path))
-        logger.info("SpeechProcessor инициализирован — язык=%s, offline‑only, модель=%s",
+        logger.info("SpeechProcessor инициализирован — язык=%s, offline-only, модель=%s",
                     config.language, self.model_path)
 
     def text_to_speech(self, text: str) -> AudioSegment:

@@ -63,20 +63,30 @@ function sendMessage() {
   addMessage(text, "user");
   userInput.value = "";
 
+  const sourceToggle = document.getElementById("source-toggle");
+  const fragmentsToggle = document.getElementById("fragments-toggle");
+  const showSourceInfo = sourceToggle ? sourceToggle.checked : false;
+  const showTextFragments = fragmentsToggle ? fragmentsToggle.checked : false;
+
   fetch("/api/message", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: text, user_id: userId })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+          message: text,
+          user_id: userId,
+          show_source_info: showSourceInfo,
+          show_text_fragments: showTextFragments
+      })
   })
-    .then((res) => res.json())
-    .then((data) => {
-      addMessage(data.answer, "bot");
-      if (preferences.tts) speakText(data.answer);
-    })
-    .catch((err) => {
-      console.error(err);
-      addMessage("Ошибка при получении ответа", "bot");
-    });
+      .then((res) => res.json())
+      .then((data) => {
+          addMessage(data.answer, "bot", data.source, data.fragments);
+          if (preferences.tts) speakText(data.answer);
+      })
+      .catch((err) => {
+          console.error(err);
+          addMessage("Ошибка при получении ответа", "bot");
+      });
 }
 
 function loadServerMessages() {
@@ -103,3 +113,4 @@ function getOrCreateUserId() {
 
   return userId;
 }
+

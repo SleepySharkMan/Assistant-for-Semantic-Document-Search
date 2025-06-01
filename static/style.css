@@ -1,17 +1,17 @@
 :root {
   /* Основные переменные для светлой темы (по умолчанию) */
-  --color-primary: #1a74d0;     /* Акцентные элементы */
-  --color-text: #333;           /* Цвет текста */
-  --color-border: #ccc;         /* Цвет рамок */
+  --color-primary: #1a74d0;     
+  --color-text: #333;          
+  --color-border: #ccc;         
   
   /* Фоны для светлой темы */
-  --body-background: #f2f2f2;   /* Фон всей страницы (слегка серый) */
-  --chat-background: #ffffff;   /* Фон блока чата (белый) */
-  --input-background: #ffffff;  /* Фон области ввода */
+  --body-background: #f2f2f2;   
+  --chat-background: #ffffff;  
+  --input-background: #ffffff;  
   
   /* Цвета для сообщений */
-  --color-bot: #f1f8ff;         /* Фон сообщений бота */
-  --color-user: #d1e7dd;        /* Фон сообщений пользователя */
+  --color-bot: #f1f8ff;         
+  --color-user: #d1e7dd;        
   
   /* Фон для кнопок и верхней панели (по умолчанию совпадает с акцентным) */
   --button-background: var(--color-primary);
@@ -135,7 +135,7 @@ body {
 .accessibility-panel .normal-version-btn {
   white-space: nowrap; 
   flex-shrink: 0;      
-  min-width: 180px;    /
+  min-width: 180px;    
 }
 
 button.active {
@@ -166,9 +166,9 @@ button.active {
 
 /* === TOGGLE SWITCHES === */
 .toggle-switch {
-  position: relative;
-  width: 46px;
-  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; 
 }
 
 .toggle-checkbox {
@@ -178,12 +178,10 @@ button.active {
 }
 
 .toggle-label {
-  position: absolute;
+  position: relative; 
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  width: 46px;
+  height: 24px;
   background-color: #ccc;
   border-radius: 24px;
   transition: background-color 0.3s;
@@ -309,7 +307,6 @@ body.light-theme .bot-message .message-content {
   word-wrap: break-word;
 }
 
-
 .user-message .message-content {
   background: var(--color-user);
 }
@@ -348,12 +345,16 @@ body.light-theme .bot-message .message-content {
   border-top: 1px solid var(--color-border);
   background: var(--input-background);
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .input-container {
   display: flex;
   gap: 0.5rem;
   width: 100%;
+  align-items: center;
 }
 
 textarea {
@@ -393,9 +394,47 @@ textarea {
   transform: scale(0.96);
 }
 
+/* === SOURCE CONTROLS === */
+.source-controls {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+  justify-content: flex-end; 
+  align-items: center;
+  width: 100%; 
+  box-sizing: border-box;
+  margin-left: auto; 
+}
+
+.input-area .source-controls {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.source-controls .toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.source-controls span {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap; 
+}
+
+/* === THEMES SUPPORT FOR SOURCE CONTROLS === */
+body.dark-theme .source-controls span {
+  color: var(--color-text);
+}
+
+body.high-contrast .source-controls span {
+  color: var(--color-text);
+}
+
 /* === THEMES === */
 
-/* Тёмная тема */
 body.dark-theme {
   --color-primary: #3d84d9;
   --color-text: #eee;
@@ -421,7 +460,6 @@ body.dark-theme .accessibility-toggle {
   color: #fff;     
 }
 
-/* Жёлтая тема */
 body.yellow-theme {
   --color-primary: #d4a200;
   --color-text: #333;
@@ -457,6 +495,7 @@ body.high-contrast {
 body.high-contrast .user-message .message-content {
   color: #fff;
 }
+
 body.high-contrast .bot-message .message-content {
   border: 1px solid var(--color-border);
 }
@@ -489,9 +528,15 @@ body.font-large { font-size: var(--font-large); }
   .message {
     max-width: 100%;
   }
+
+  .source-controls {
+    justify-content: flex-end; 
+    flex-wrap: wrap; 
+    width: 100%;
+    margin-left: 0; 
+  }
 }
 
-/* Оболочка панели доступности */
 .accessibility-panel {
   display: flex;
   justify-content: space-between; 
@@ -603,4 +648,32 @@ body.high-contrast #mic-btn:hover {
   outline: 2px solid var(--color-border);
   outline-offset: 2px;
   filter: none;
+}
+
+/* === MESSAGE DETAILS === */
+.message-details {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.message-sources,
+.message-fragments {
+  margin-top: 0.5rem;
+}
+
+.message-sources ul,
+.message-fragments ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+
+.message-sources li,
+.message-fragments li {
+  margin-bottom: 0.3rem;
+}
+
+body.high-contrast .message-details {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem;
 }

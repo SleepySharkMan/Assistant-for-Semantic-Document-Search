@@ -1,0 +1,145 @@
+2025-05-29 20:49:34 INFO FileProcessor инициализирован: image_enabled=True
+2025-05-29 20:49:34 INFO Use pytorch device_name: cuda
+2025-05-29 20:49:34 INFO Load pretrained SentenceTransformer: models/paraphrase-multilingual-MiniLM-L12-v2
+2025-05-29 20:49:35 INFO Загружена модель эмбеддингов models/paraphrase-multilingual-MiniLM-L12-v2 на cuda:0
+2025-05-29 20:49:35 INFO Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-05-29 20:49:36 INFO EmbeddingStorage готов: data\chroma_db/embeddings
+2025-05-29 20:49:36 ERROR Ошибка при рендеринге главной страницы: GPU cuda:1 недоступен
+Traceback (most recent call last):
+  File "d:\Assistant-for-Semantic-Document-Search\website.py", line 168, in index
+    entries = dialog_manager.history.fetch_latest(user_id=user_id, limit=30)
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 38, in __getattr__
+    return getattr(self._ensure(), item)
+                   ^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 34, in _ensure
+    _services = build_services(self._cfg)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\services.py", line 36, in build_services
+    generator        = AnswerGeneratorAndValidator(cfg.answer_generator)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 21, in __init__
+    self._init_device()
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 59, in _init_device
+    raise ValueError(f"GPU {device} недоступен")
+ValueError: GPU cuda:1 недоступен
+2025-05-29 20:49:36 ERROR Неперехваченное исключение: cannot access local variable 'messages' where it is not associated with a value
+Traceback (most recent call last):
+  File "d:\Assistant-for-Semantic-Document-Search\website.py", line 168, in index
+    entries = dialog_manager.history.fetch_latest(user_id=user_id, limit=30)
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 38, in __getattr__
+    return getattr(self._ensure(), item)
+                   ^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 34, in _ensure
+    _services = build_services(self._cfg)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\services.py", line 36, in build_services
+    generator        = AnswerGeneratorAndValidator(cfg.answer_generator)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 21, in __init__
+    self._init_device()
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 59, in _init_device
+    raise ValueError(f"GPU {device} недоступен")
+ValueError: GPU cuda:1 недоступен
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\website.py", line 176, in index
+    return render_template("chat/index.html", messages=messages), 500
+                                                       ^^^^^^^^
+UnboundLocalError: cannot access local variable 'messages' where it is not associated with a value
+2025-05-29 20:49:36 INFO 127.0.0.1 - - [29/May/2025 20:49:36] "[35m[1mGET / HTTP/1.1[0m" 500 -
+2025-05-29 20:49:36 ERROR Неперехваченное исключение: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2025-05-29 20:49:36 INFO 127.0.0.1 - - [29/May/2025 20:49:36] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2025-05-29 20:50:14 INFO 127.0.0.1 - - [29/May/2025 20:50:14] "[36mGET /config HTTP/1.1[0m" 304 -
+2025-05-29 20:50:14 INFO 127.0.0.1 - - [29/May/2025 20:50:14] "GET /api/config HTTP/1.1" 200 -
+2025-05-29 20:50:14 INFO Загружен конфиг: D:\Assistant-for-Semantic-Document-Search\config.yaml
+2025-05-29 20:50:14 INFO 127.0.0.1 - - [29/May/2025 20:50:14] "GET /api/app/status HTTP/1.1" 200 -
+2025-05-29 20:50:14 ERROR Неперехваченное исключение: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+Traceback (most recent call last):
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Assistant-for-Semantic-Document-Search\.venv\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2025-05-29 20:50:14 INFO 127.0.0.1 - - [29/May/2025 20:50:14] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2025-05-29 20:50:18 INFO FileProcessor инициализирован: image_enabled=True
+2025-05-29 20:50:18 INFO Use pytorch device_name: cuda
+2025-05-29 20:50:18 INFO Load pretrained SentenceTransformer: models/paraphrase-multilingual-MiniLM-L12-v2
+2025-05-29 20:50:20 INFO Загружена модель эмбеддингов models/paraphrase-multilingual-MiniLM-L12-v2 на cuda:0
+2025-05-29 20:50:20 INFO EmbeddingStorage готов: data\chroma_db/embeddings
+2025-05-29 20:50:20 ERROR files list
+Traceback (most recent call last):
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 102, in list_files
+    meta_db = srv()["metadata_db"]
+              ^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 57, in srv
+    _services = build_services(cfg_file)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\services.py", line 36, in build_services
+    generator        = AnswerGeneratorAndValidator(cfg.answer_generator)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 21, in __init__
+    self._init_device()
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 59, in _init_device
+    raise ValueError(f"GPU {device} недоступен")
+ValueError: GPU cuda:1 недоступен
+2025-05-29 20:50:20 INFO 127.0.0.1 - - [29/May/2025 20:50:20] "[35m[1mGET /api/files HTTP/1.1[0m" 500 -
+2025-05-29 20:50:25 INFO Загружен конфиг: D:\Assistant-for-Semantic-Document-Search\config.yaml
+2025-05-29 20:50:28 INFO FileProcessor инициализирован: image_enabled=True
+2025-05-29 20:50:28 INFO Use pytorch device_name: cuda
+2025-05-29 20:50:28 INFO Load pretrained SentenceTransformer: models/paraphrase-multilingual-MiniLM-L12-v2
+2025-05-29 20:50:29 INFO Загружена модель эмбеддингов models/paraphrase-multilingual-MiniLM-L12-v2 на cuda:0
+2025-05-29 20:50:29 INFO EmbeddingStorage готов: data\chroma_db/embeddings
+2025-05-29 20:50:29 ERROR files list
+Traceback (most recent call last):
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 102, in list_files
+    meta_db = srv()["metadata_db"]
+              ^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\admin_routes.py", line 57, in srv
+    _services = build_services(cfg_file)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\services.py", line 36, in build_services
+    generator        = AnswerGeneratorAndValidator(cfg.answer_generator)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 21, in __init__
+    self._init_device()
+  File "d:\Assistant-for-Semantic-Document-Search\modules\answer_generator.py", line 59, in _init_device
+    raise ValueError(f"GPU {device} недоступен")
+ValueError: GPU cuda:1 недоступен
+2025-05-29 20:50:29 INFO 127.0.0.1 - - [29/May/2025 20:50:29] "[35m[1mGET /api/files HTTP/1.1[0m" 500 -
+2025-05-29 20:52:18 INFO 127.0.0.1 - - [29/May/2025 20:52:18] "POST /api/config HTTP/1.1" 200 -
+2025-05-29 20:52:34 INFO 127.0.0.1 - - [29/May/2025 20:52:34] "POST /api/config HTTP/1.1" 200 -
+2025-05-29 20:55:20 INFO  * Detected change in 'd:\\Assistant-for-Semantic-Document-Search\\admin_routes.py', reloading

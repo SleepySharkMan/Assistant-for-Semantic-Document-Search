@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Чат{% endblock %}
+
+{% block content %}
+  {# сюда «вклеивается» основное содержимое index.html #}
+  {% block chat_content %}{% endblock %}
+
+  {# модальное окно подтверждения очистки чата #}
+  {% include "chat/components/confirm-modal.html" %}
+
+  {# скрипт, управляющий модальным окном #}
+  <script type="module"
+          src="{{ url_for('static', filename='confirm-modal.js') }}"></script>
+{% endblock %}

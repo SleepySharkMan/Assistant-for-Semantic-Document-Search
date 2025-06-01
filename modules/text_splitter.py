@@ -12,7 +12,7 @@ class TextContextSplitter:
         self._validate_config()
 
     def _validate_pair(self, bigger: int, overlap: int):
-        if bigger <= overlap or bigger <= 0 or overlap < 0:
+        if bigger < overlap or bigger <= 0 or overlap < 0:
             raise ValueError
 
     def _validate_config(self):
@@ -21,6 +21,15 @@ class TextContextSplitter:
         self._validate_pair(c.sentences_per_context, c.overlap_sentences)
         if c.paragraphs_per_context <= 0 or c.overlap_lines < 0:
             raise ValueError
+        
+    def split(self, content: str) -> list[str]:
+        if self.config.method == "words":
+            return self.split_by_words(content)
+        if self.config.method == "sentences":
+            return self.split_by_sentences(content)
+        if self.config.method == "paragraphs":
+            return self.split_by_paragraphs(content)
+        raise ValueError(f"Unknown split method: {self.method}")
 
     def split_by_words(self, content: str) -> list[str]:
         wp, ow = self.config.words_per_context, self.config.overlap_words

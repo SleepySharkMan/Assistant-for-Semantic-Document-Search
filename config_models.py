@@ -63,6 +63,7 @@ class AnswerGeneratorConfig:
 
 @dataclass
 class TextSplitterConfig:
+    method: str
     words_per_context: int
     overlap_words: int
     sentences_per_context: int
@@ -105,7 +106,6 @@ class SpeechConfig:
 class LoggingConfig:
     level: str
     file: str
-    format: str
     max_bytes: int
     backup_count: int
     console_level: str

@@ -12,6 +12,7 @@ class File(Base):
     size = Column(Integer, nullable=False)
     hash = Column(String(64), unique=True, nullable=False)
     processed = Column(Boolean, default=False)
+    splitter_method = Column(String, nullable=True)
     created_at = Column(DateTime, default=func.now())
 
     image = relationship("Image", back_populates="file", uselist=False, cascade="all, delete-orphan")

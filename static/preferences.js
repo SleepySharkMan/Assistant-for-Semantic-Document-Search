@@ -11,7 +11,6 @@ export function savePreferences() {
 }
 
 export function applyPreferences() {
-  // Применяем настройки размера шрифта
   document.body.classList.remove("font-small", "font-medium", "font-large");
   document.body.classList.add("font-" + preferences.fontSize);
 

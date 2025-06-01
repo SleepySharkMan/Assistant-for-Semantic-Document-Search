@@ -1,0 +1,27 @@
+<div class="input-area">
+    <div class="input-container">
+        <textarea id="user-input" placeholder="Введите ваше сообщение..." aria-label="Поле ввода сообщения"></textarea>
+        <button id="send-btn" aria-label="Отправить сообщение">Отправить</button>
+        <button id="mic-btn" aria-label="Записать голосовое сообщение">
+            <i class="fas fa-microphone"></i>
+        </button>
+    </div>
+    {% if show_text_source_info or show_text_fragments %}
+    <div class="source-controls">
+        {% if show_text_source_info %}
+        <div class="toggle-switch">
+            <span>Отображать источники</span>
+            <input type="checkbox" id="source-toggle" class="toggle-checkbox">
+            <label for="source-toggle" class="toggle-label"></label>
+        </div>
+        {% endif %}
+        {% if show_text_fragments %}
+        <div class="toggle-switch">
+            <span>Отображать фрагменты</span>
+            <input type="checkbox" id="fragments-toggle" class="toggle-checkbox">
+            <label for="fragments-toggle" class="toggle-label"></label>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

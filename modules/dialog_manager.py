@@ -117,7 +117,7 @@ class DialogManager:
             logger.exception("TTS error: %s", exc)
             return BytesIO()
 
-    def reload(
+    def update_config(
         self,
         *,
         embedder: EmbeddingHandler = None,

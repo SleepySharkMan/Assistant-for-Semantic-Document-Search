@@ -21,7 +21,8 @@ from services import (
     app_status,
     shutdown_app,
     rebuild_all_embeddings,
-    upload_files
+    upload_files,
+    rebuild_services
 )
 from website import register_routes as core_routes
 
@@ -60,6 +61,7 @@ def register_admin_routes(app: Flask, *, config_path: str | Path = "config.yaml"
     def save_config_route():
         data = request.get_json(silent=True) or {}
         response, status = save_config(cfg_file, data, socketio)
+        rebuild_services(cfg_file, socketio)
         return jsonify(response), status
 
     @app.get("/api/config/optimize")

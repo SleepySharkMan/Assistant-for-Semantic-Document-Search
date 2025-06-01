@@ -557,7 +557,7 @@ def upload_files(files: List[Any], services: Dict[str, Any], socketio: SocketIO 
                 continue
             file.save(str(file_path))
             try:
-                process_single_file(file_path, services)
+                process_single_file(file_path, services, socketio)
                 processed_files.append(filename)
                 success_count += 1
             except Exception as e:
@@ -614,3 +614,44 @@ def rebuild_all_embeddings(services: Dict[str, Any], socketio: SocketIO = None) 
     except Exception as e:
         logger.exception("Ошибка пересоздания эмбеддингов для всех файлов")
         return {"status": "error", "message": str(e)}, 500
+
+def rebuild_services(config_path: str | Path = "config.yaml", socketio: SocketIO | None = None) -> Dict[str, Any]:
+    """Пересоздает только существующие сервисы из _services, используя minimal_init_classes и full_init_classes."""
+    global _services, _running
+    if _services is None:
+        logger.warning("Нет сервисов для пересоздания")
+        return {}
+
+    # Сохраняем копию существующих сервисов
+    existing_services = dict(_services)
+
+    try:
+        # Проверяем, какие базовые сервисы нужно пересоздать
+        minimal_keys = {"config", "metadata_db", "document_manager", "splitter", "embedder", "embedding_storage"}
+        if any(k in existing_services for k in minimal_keys):
+            _services = minimal_init_classes(config_path, socketio)
+        else:
+            # Если нет базовых сервисов, инициализируем пустой _services с config
+            try:
+                cfg_loader = ConfigLoader(config_path)
+                cfg = cfg_loader.full
+                _setup_logging(cfg, socketio)
+                _services = {"config": cfg} if "config" in existing_services else {}
+            except Exception as e:
+                logger.exception("Ошибка загрузки конфигурации: %s", e)
+                return {}
+
+        full_keys = {"generator", "speech", "dialog_manager"}
+        if any(k in existing_services for k in full_keys):
+            _services = full_init_classes(config_path, socketio)
+
+            _running = True
+
+        _services = {k: v for k, v in _services.items() if k in existing_services}
+
+    except Exception as e:
+        logger.exception("Ошибка пересоздания сервисов: %s", e)
+        _services = {}
+        return {}
+
+    return _services

@@ -91,3 +91,24 @@ class SpeechProcessor:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             seg.export(tmp, format="wav")
             return Path(tmp.name)
+        
+    def update_config(self, new_config: SpeechConfig) -> None:
+            """Обновляет конфигурацию SpeechProcessor и реинициализирует компоненты при необходимости."""
+            old_config = self.config
+            self.config = new_config
+
+            # Проверка и обновление пути к модели Vosk
+            new_model_path = Path(new_config.model)
+            if new_model_path != self.model_path:
+                if not new_model_path.exists():
+                    raise FileNotFoundError(f"Vosk-модель не найдена: {new_model_path}")
+                self.model_path = new_model_path
+                self._rec_model = vosk.Model(str(self.model_path))
+                logger.info("Модель Vosk обновлена: %s", self.model_path)
+
+            # Проверка и обновление языка для TTS
+            if new_config.language != old_config.language:
+                self._set_voice(new_config.language)
+                logger.info("Язык TTS обновлен: %s", new_config.language)
+
+            logger.info("Конфигурация SpeechProcessor обновлена")

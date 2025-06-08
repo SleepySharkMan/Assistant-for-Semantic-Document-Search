@@ -19,3 +19,5 @@ logs/*.log
 # IDE
 .vscode/
 .idea/
+app.log
+/temp

@@ -137,6 +137,28 @@ def register_routes(app, dialog_manager):
             logger.exception("Speech recognition error for user_id=%s: %s", user_id, str(e)[:100])
             return jsonify({"error": "Speech recognition failed.", "details": str(e)[:100]}), 500
 
+    @app.route("/api/text-to-speech", methods=["POST"])
+    def handle_text_to_speech():
+        data = request.get_json(silent=True) or {}
+        user_id = (data.get("user_id") or "").strip()
+        text = (data.get("text") or "").strip()
+        logger.info("HTTP %s %s user_id=%r text=%r", request.method, request.path, user_id, text)
+
+        if not text:
+            logger.warning("Некорректный запрос: пустой текст для синтеза речи. user_id=%s", user_id)
+            return jsonify({"error": "Текст не может быть пустым."}), 400
+
+        logger.debug("Начало синтеза речи для текста: %s", text[:100])
+        try:
+            audio_buf = dialog_manager.synthesize_speech(text)
+            audio_size = audio_buf.getbuffer().nbytes
+            logger.debug("Синтез речи завершен, размер аудио: %d байт", audio_size)
+            audio_buf.seek(0)
+            return send_file(audio_buf, mimetype="audio/wav"), 200
+        except Exception as e:
+            logger.exception("Ошибка синтеза речи: %s", e)
+            return jsonify({"error": "Ошибка синтеза речи.", "details": str(e)[:100]}), 500
+
     @app.route("/ping", methods=["GET"])
     def ping():
         return "pong", 200

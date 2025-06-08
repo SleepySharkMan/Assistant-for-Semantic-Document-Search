@@ -21,12 +21,12 @@
             <option value="cuda:0" selected>cuda:0</option>
             <option value="cpu">cpu</option>
           </select>
-          <span class="tooltip">Устройство (CPU или GPU) для работы модели эмбеддингов.</span>
+          <span class="tooltip">>Выбор между GPU (cuda:0) для быстрой обработки или CPU для экономии видеопамяти. GPU ускоряет создание эмбеддингов.</span>
         </label>
         <label class="inline">
           <span class="label-text">Путь к модели</span>
           <input type="text" name="embedding_handler.model_path" value="models/paraphrase-multilingual-MiniLM-L12-v2">
-          <span class="tooltip">Путь к модели эмбеддингов.</span>
+          <span class="tooltip">Расположение модели для создания векторных представлений текста.</span>
         </label>
       </fieldset>
       <fieldset>
@@ -47,7 +47,7 @@
             <option value="int8">int8</option>
             <option value="nf4" selected>nf4</option>
           </select>
-          <span class="tooltip">Тип квантования.</span>
+          <span class="tooltip">Сжатие модели: fp32 (без сжатия, максимальное качество), fp16 (в 2 раза меньше памяти), int8 (в 4 раза меньше), nf4 (в 8 раз меньше, рекомендуется)</span>
         </label>
         <label>
           <span class="label-text">Режим генерации</span>
@@ -55,47 +55,47 @@
             <option value="stochastic" selected>стохастический</option>
             <option value="deterministic">детерминированный</option>
           </select>
-          <span class="tooltip">Режим генерации.</span>
+          <span class="tooltip">Стохастический - разнообразные, творческие ответы (может отличаться при повторе). Детерминированный - стабильные, предсказуемые ответы</span>
         </label>
         <label class="inline">
           <span class="label-text">Путь к текстовой модели</span>
           <input type="text" name="answer_generator.text_model_path" value="models/Qwen-7B-Chat">
-          <span class="tooltip">Путь к модели текста.</span>
+          <span class="tooltip">Основная языковая модель для генерации ответов.</span>
         </label>
         <label class="inline">
           <span class="label-text">Путь к модели QA</span>
           <input type="text" name="answer_generator.qa_model_path" value="models/mdeberta-v3-base-squad2">
-          <span class="tooltip">Путь к модели QA.</span>
+          <span class="tooltip">Путь к модели QA. (Не работает)</span>
         </label>
         <fieldset>
           <legend>Настройки генерации</legend>
           <label class="inline">
             <span class="label-text">Макс. новых токенов</span>
             <input type="number" name="answer_generator.generation.max_new_tokens" value="2048">
-            <span class="tooltip">Макс. токенов.</span>
+            <span class="tooltip">Максимальная длина ответа в токенах. 2048 ≈ 1500-2000 слов. Больше значение - длиннее ответы, но медленнее генерация.</span>
           </label>
           <label class="inline">
             <span class="label-text">Количество последовательностей</span>
             <input type="number" name="answer_generator.generation.num_return_sequences" value="1">
-            <span class="tooltip">Кол-во последовательностей.</span>
+            <span class="tooltip">Сколько вариантов ответа генерировать одновременно. Больше 1 замедляет работу, но дает выбор из нескольких ответов.</span>
           </label>
           <label class="inline">
             <span class="label-text">Размер запрета n-грамм</span>
             <input type="number" name="answer_generator.generation.no_repeat_ngram_size" value="3">
-            <span class="tooltip">Запрет n-грамм.</span>
+            <span class="tooltip">Предотвращает повторение фраз из 3 слов. Увеличение уменьшает повторы, но может ухудшить связность текста</span>
           </label>
           <label class="inline">
             <span class="label-text">Штраф за повторение</span>
             <input type="number" step="0.1" name="answer_generator.generation.repetition_penalty" value="1.1">
-            <span class="tooltip">Штраф за повторение.</span>
+            <span class="tooltip">Насколько сильно штрафовать повторяющиеся слова. 1.0 = без штрафа, 1.1 = легкий штраф, >1.3 может сделать текст неестественным</span>
           </label>
           <label>
-            <span class="label-text">Ранний останов</span>
+            <span class="label-text">Ранняя остановка</span>
             <select name="answer_generator.generation.early_stopping">
               <option value="false" selected>нет</option>
               <option value="true">да</option>
             </select>
-            <span class="tooltip">Ранний останов.</span>
+            <span class="tooltip">Останавливать генерацию при достижении естественного конца ответа. Включение экономит время, но может обрезать длинные ответы.</span>
           </label>
           <label>
             <span class="label-text">Выгрузка на CPU</span>
@@ -103,25 +103,25 @@
               <option value="true" selected>да</option>
               <option value="false">нет</option>
             </select>
-            <span class="tooltip">Выгрузка на CPU.</span>
+            <span class="tooltip">Переносить неиспользуемые части модели в оперативную память для экономии видеопамяти. Замедляет работу, но позволяет работать с большими моделями.</span>
           </label>
           <fieldset>
             <legend>Детерминированные настройки</legend>
             <label class="inline">
               <span class="label-text">Количество лучей</span>
               <input type="number" name="answer_generator.generation.deterministic.num_beams" value="1">
-              <span class="tooltip">Кол-во лучей.</span>
+              <span class="tooltip">Количество вариантов, рассматриваемых одновременно. 1 = жадный поиск (быстро), >1 = beam search (качественнее, но медленнее).</span>
             </label>
             <label class="inline">
               <span class="label-text">Штраф за длину</span>
               <input type="number" step="0.1" name="answer_generator.generation.deterministic.length_penalty"
                 value="0.7">
-              <span class="tooltip">Штраф за длину.</span>
+              <span class="tooltip">Штраф за длинные ответы. <1.0 = короткие ответы, 1.0 = нейтрально, >1.0 = длинные ответы</span>
             </label>
             <label class="inline">
               <span class="label-text">Размер запрета n-грамм</span>
               <input type="number" name="answer_generator.generation.deterministic.no_repeat_ngram_size" value="4">
-              <span class="tooltip">Запрет n-грамм.</span>
+              <span class="tooltip">Предотвращает повторение фраз из 3 слов. Увеличение уменьшает повторы, но может ухудшить связность текста.</span>
             </label>
           </fieldset>
           <fieldset>
@@ -129,27 +129,27 @@
             <label class="inline">
               <span class="label-text">Температура</span>
               <input type="number" step="0.01" name="answer_generator.generation.stochastic.temperature" value="0.9">
-              <span class="tooltip">Температура.</span>
+              <span class="tooltip">Креативность ответов. 0.1-0.3 = консервативные ответы, 0.7-1.0 = креативные, >1.2 = хаотичные.</span>
             </label>
             <label class="inline">
               <span class="label-text">Топ P</span>
               <input type="number" step="0.01" name="answer_generator.generation.stochastic.top_p" value="0.7">
-              <span class="tooltip">Топ P.</span>
+              <span class="tooltip">Ограничение выбора слов по вероятности. 0.9 = рассматривать 90% наиболее вероятных слов. Меньше значение = более предсказуемые ответы.</span>
             </label>
             <label class="inline">
               <span class="label-text">Топ K</span>
               <input type="number" name="answer_generator.generation.stochastic.top_k" value="30">
-              <span class="tooltip">Топ K.</span>
+              <span class="tooltip">Рассматривать только K самых вероятных слов. 10-20 = консервативно, 50-100 = креативно.</span>
             </label>
             <label class="inline">
               <span class="label-text">Типичная вероятность</span>
               <input type="number" step="0.01" name="answer_generator.generation.stochastic.typical_p" value="0.9">
-              <span class="tooltip">Типичная вероятность.</span>
+              <span class="tooltip">Фильтрация слов по "типичности". 0.9 исключает как слишком предсказуемые, так и слишком неожиданные слова</span>
             </label>
             <label class="inline">
               <span class="label-text">Количество лучей</span>
               <input type="number" name="answer_generator.generation.stochastic.num_beams" value="1">
-              <span class="tooltip">Кол-во лучей.</span>
+              <span class="tooltip">Количество вариантов, рассматриваемых одновременно. 1 = жадный поиск (быстро), >1 = beam search (качественнее, но медленнее).</span>
             </label>
           </fieldset>
         </fieldset>
@@ -163,19 +163,19 @@
             <option value="sentences">по предложениям</option>
             <option value="paragraphs">по параграфам</option>
           </select>
-          <span class="tooltip">Метод разделения.</span>
+          <span class="tooltip">Способ разделения документов: по словам (точный контроль размера), по предложениям (сохраняет смысл), по параграфам (сохраняет структуру).</span>
         </label>
         <fieldset>
           <legend>По словам</legend>
           <label class="inline">
             <span class="label-text">Слов в контексте</span>
             <input type="number" name="splitter.words_per_context" value="150">
-            <span class="tooltip">Слов в фрагменте.</span>
+            <span class="tooltip">Размер каждого фрагмента текста в словах. 100-200 оптимально для большинства задач. Больше = больше контекста, но медленнее поиск.</span>
           </label>
           <label class="inline">
             <span class="label-text">Перекрытие слов</span>
             <input type="number" name="splitter.overlap_words" value="50">
-            <span class="tooltip">Перекрытие слов.</span>
+            <span class="tooltip">Количество общих слов между соседними фрагментами. Предотвращает потерю информации на границах. 20-30% от размера фрагмента.</span>
           </label>
         </fieldset>
         <fieldset>
@@ -254,12 +254,12 @@
         <label class="inline">
           <span class="label-text">Размерность эмбеддингов</span>
           <input type="number" name="embedding_storage.embedding_dim" value="384">
-          <span class="tooltip">Размерность эмбеддингов.</span>
+          <span class="tooltip">Размер векторного представления текста. Должен соответствовать модели эмбеддингов. Изменять только при смене модели.</span>
         </label>
         <label class="inline">
           <span class="label-text">Порог схожести</span>
           <input type="number" step="0.01" name="embedding_storage.similarity_threshold" value="0.5">
-          <span class="tooltip">Порог схожести.</span>
+          <span class="tooltip">Минимальная схожесть для включения фрагмента в ответ. 0.3-0.4 = широкий поиск, 0.6-0.8 = строгий поиск только очень похожих фрагментов.</span>
         </label>
       </fieldset>
       <fieldset>
@@ -301,17 +301,17 @@
 Вопрос: {question}
 Помоги мне, пожалуйста. Ответ:
 ASSISTANT:</textarea>
-          <span class="tooltip">Шаблон запросов.</span>
+          <span class="tooltip">Шаблон для формирования запроса к ИИ. {context} заменяется найденной информацией, {question} - вопросом пользователя. Влияет на стиль и качество ответов.</span>
         </label>
         <label class="inline">
           <span class="label-text">Показывать источник</span>
           <input type="checkbox" name="dialog_manager.show_text_source_info" value="true" checked>
-          <span class="tooltip">Показывать источник.</span>
+          <span class="tooltip">Добавлять к ответу информацию о том, из каких документов взята информация. Полезно для проверки достоверности.</span>
         </label>
         <label class="inline">
           <span class="label-text">Показывать фрагменты</span>
           <input type="checkbox" name="dialog_manager.show_text_fragments" value="true" checked>
-          <span class="tooltip">Показывать фрагменты.</span>
+          <span class="tooltip">Показывать исходные фрагменты текста, на основе которых сформирован ответ. Помогает понять откуда взята информация.</span>
         </label>
         <fieldset>
           <legend>Сообщения</legend>
@@ -339,7 +339,7 @@ ASSISTANT:</textarea>
             <option value="ERROR">ERROR</option>
             <option value="CRITICAL">CRITICAL</option>
           </select>
-          <span class="tooltip">Уровень логирования.</span>
+          <span class="tooltip">Детальность логирования: DEBUG (всё подряд, для отладки), INFO (основные события), WARNING (только предупреждения и ошибки), ERROR (только ошибки).</span>
         </label>
         <label class="inline">
           <span class="label-text">Файл</span>
@@ -349,12 +349,12 @@ ASSISTANT:</textarea>
         <label class="inline">
           <span class="label-text">Макс. размер (байт)</span>
           <input type="number" name="logging.max_bytes" value="10485760">
-          <span class="tooltip">Макс. размер логов.</span>
+          <span class="tooltip">Максимальный размер файла логов в байтах (10MB = 10485760). При превышении создается новый файл, старый архивируется.</span>
         </label>
         <label class="inline">
           <span class="label-text">Резервные копии</span>
           <input type="number" name="logging.backup_count" value="5">
-          <span class="tooltip">Кол-во копий логов.</span>
+          <span class="tooltip">Количество старых файлов логов, которые сохранять. При превышении самые старые файлы удаляются.</span>
         </label>
         <label>
           <span class="label-text">Уровень консоли</span>

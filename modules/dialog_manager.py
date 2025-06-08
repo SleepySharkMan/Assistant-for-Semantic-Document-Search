@@ -44,7 +44,7 @@ class DialogManager:
         user_id: str,
         question: str,
         *,
-        top_k: int = 5,
+        top_k: int = 3,
         request_source_info: Optional[bool] = None,
         request_fragments: Optional[bool] = None
         ) -> dict:
@@ -98,24 +98,45 @@ class DialogManager:
         logger.info("[%s] answered in %.2f s", req_id, time.perf_counter() - start)
 
         return response
-
+    
     def answer_speech(self, audio: BytesIO) -> Optional[str]:
         try:
             return self.speech.speech_to_text(audio)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc: 
             logger.exception("STT error: %s", exc)
             return None
 
+    
     def synthesize_speech(self, text: str) -> BytesIO:
-        try:
-            audio_seg = self.speech.text_to_speech(text)
-            out = BytesIO()
-            audio_seg.export(out, format="wav")  # type: ignore[arg-type]
-            out.seek(0)
-            return out
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("TTS error: %s", exc)
-            return BytesIO()
+            """Синтез речи с улучшенной обработкой ошибок"""
+            if not text or not text.strip():
+                logger.warning("Попытка синтеза пустого текста")
+                return BytesIO()
+            
+            try:
+                logger.debug("Начало синтеза речи для текста: %s", text[:50])
+                audio_seg = self.speech.text_to_speech(text.strip())
+                
+                if not audio_seg or len(audio_seg) == 0:
+                    logger.error("TTS вернул пустой аудиосегмент")
+                    return BytesIO()
+                
+                out = BytesIO()
+                audio_seg.export(out, format="wav")
+                
+                audio_size = out.getbuffer().nbytes
+                if audio_size == 0:
+                    logger.error("Экспорт аудио в BytesIO провален")
+                    return BytesIO()
+                
+                out.seek(0)
+                logger.debug("TTS успешно завершён для текста: %s, размер: %d байт", 
+                            text[:50], audio_size)
+                return out
+                
+            except Exception as exc:
+                logger.exception("TTS error для текста '%s': %s", text[:50], exc)
+                return BytesIO()
 
     def update_config(
         self,

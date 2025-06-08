@@ -116,6 +116,7 @@ class AnswerGenerator:
         self.generation_mode = mode
         gen_cfg = self.config.generation
 
+        # Базовая конфигурация для обоих режимов
         self.generation_config = {
             'max_new_tokens': gen_cfg.max_new_tokens,
             'num_return_sequences': gen_cfg.num_return_sequences,
@@ -132,7 +133,7 @@ class AnswerGenerator:
                 'length_penalty': det_cfg.length_penalty,
                 'no_repeat_ngram_size': det_cfg.no_repeat_ngram_size
             })
-        else:
+        else:  # Стохастический режим
             stoch_cfg = gen_cfg.stochastic
             self.generation_config.update({
                 'do_sample': True,
@@ -151,23 +152,20 @@ class AnswerGenerator:
     def generate_response(self, prompt):
         try:
             self._adjust_max_new_tokens(prompt)
-            
             inputs = self.text_tokenizer(prompt, return_tensors="pt")
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
             
+            inputs = {
+                k: v.to(dtype=torch.int64 if k == "input_ids" else torch.float32).to(self.device)
+                for k, v in inputs.items()
+            }
             outputs = self.text_model.generate(
                 inputs["input_ids"], 
                 attention_mask=inputs["attention_mask"], 
                 **self.generation_config
             )
-
             input_len = inputs["input_ids"].shape[1]
-
             generated_ids = outputs[0][input_len:]
-
-            answer = self.text_tokenizer.decode(
-                generated_ids, skip_special_tokens=True
-            ).strip()
+            answer = self.text_tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
             return answer
         except Exception as e:
             logger.error("Ошибка генерации: %s", e, exc_info=True)

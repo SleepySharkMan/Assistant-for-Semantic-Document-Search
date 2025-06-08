@@ -1,4 +1,4 @@
-import { addMessage, clearMessages } from './messages.js';
+import { addMessage, clearMessages, showLoadingIndicator, hideLoadingIndicator } from './messages.js';
 import { speakText, startRecording } from './speech.js';
 import { preferences, applyPreferences } from './preferences.js';
 import './accessibility.js';
@@ -6,6 +6,7 @@ import './confirm-modal.js';
 
 let userInput;
 let userId = getOrCreateUserId();
+let userHasInteracted = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("User ID:", userId);
@@ -20,15 +21,35 @@ document.addEventListener("DOMContentLoaded", () => {
   applyPreferences();
   loadServerMessages();
 
-  sendBtn.addEventListener("click", sendMessage);
-  micBtn.addEventListener("click", startRecording);
+  // Отслеживаем первое взаимодействие пользователя
+  const markUserInteraction = () => {
+    if (!userHasInteracted) {
+      userHasInteracted = true;
+      console.log("Пользователь взаимодействовал - TTS теперь доступен");
+    }
+  };
+
+  sendBtn.addEventListener("click", () => {
+    markUserInteraction();
+    sendMessage();
+  });
+
+  micBtn.addEventListener("click", () => {
+    markUserInteraction();
+    startRecording();
+  });
 
   userInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      markUserInteraction();
       sendMessage();
     }
   });
+
+  // Также отмечаем взаимодействие при любом клике или нажатии клавиши
+  document.addEventListener("click", markUserInteraction, { once: false });
+  document.addEventListener("keydown", markUserInteraction, { once: false });
 
   if (confirmBtn) {
     confirmBtn.addEventListener("click", () => {
@@ -60,8 +81,12 @@ function sendMessage() {
   const text = userInput.value.trim();
   if (!text) return;
 
+  // Добавляем сообщение пользователя
   addMessage(text, "user");
   userInput.value = "";
+
+  // Показываем индикатор загрузки
+  showLoadingIndicator();
 
   const sourceToggle = document.getElementById("source-toggle");
   const fragmentsToggle = document.getElementById("fragments-toggle");
@@ -80,10 +105,26 @@ function sendMessage() {
   })
       .then((res) => res.json())
       .then((data) => {
+          // Скрываем индикатор загрузки
+          hideLoadingIndicator();
+          
+          // Добавляем ответ бота
           addMessage(data.answer, "bot", data.source, data.fragments);
-          if (preferences.tts) speakText(data.answer);
+          
+          // Озвучиваем ответ, если включено TTS и пользователь взаимодействовал
+          if (preferences.tts && userHasInteracted) {
+              // Небольшая задержка, чтобы сообщение успело отрендериться
+              setTimeout(() => {
+                  speakText(data.answer);
+              }, 100);
+          } else if (preferences.tts && !userHasInteracted) {
+              console.warn("TTS отключен - требуется взаимодействие пользователя");
+          }
       })
       .catch((err) => {
+          // Скрываем индикатор загрузки в случае ошибки
+          hideLoadingIndicator();
+          
           console.error(err);
           addMessage("Ошибка при получении ответа", "bot");
       });
@@ -113,4 +154,3 @@ function getOrCreateUserId() {
 
   return userId;
 }
-

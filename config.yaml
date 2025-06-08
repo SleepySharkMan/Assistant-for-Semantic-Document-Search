@@ -5,27 +5,27 @@
 # === EmbeddingHandler ===
 embedding_handler:
   device: "cuda:0"
-  model_path: "models/paraphrase-multilingual-MiniLM-L12-v2"
+  model_path: "sentence-transformers/paraphrase-mpnet-base-v2"
 
 # === AnswerGeneratorAndValidator ===
 answer_generator:
   device: "cuda:0"
   quantization: "nf4"          # fp32 | fp16 | int8 | nf4
-  generation_mode: "stochastic"  # deterministic | stochastic
+  generation_mode: "deterministic"  # deterministic | stochastic
   text_model_path: "models/Qwen-7B-Chat"
   qa_model_path: "models/mdeberta-v3-base-squad2"
 
   generation:
-    max_new_tokens: 200
+    max_new_tokens: 256
     num_return_sequences: 1
-    no_repeat_ngram_size: 3
+    no_repeat_ngram_size: 4
     repetition_penalty: 1.1
     early_stopping: false
     enable_cpu_offload: true
 
     deterministic:
-      num_beams: 1
-      length_penalty: 0.7
+      num_beams: 3
+      length_penalty: 1
       no_repeat_ngram_size: 4
 
     stochastic:
@@ -38,11 +38,11 @@ answer_generator:
 # === TextContextSplitter ===
 splitter:
   method: sentences
-  words_per_context: 150
-  overlap_words: 50
-  sentences_per_context: 1
-  overlap_sentences: 1
-  paragraphs_per_context: 2
+  words_per_context: 100
+  overlap_words: 20
+  sentences_per_context: 2
+  overlap_sentences: 2
+  paragraphs_per_context: 1
   overlap_lines: 1
 
 # === DocumentManager (включает FileProcessor и ImageCaptioner) ===
@@ -58,8 +58,8 @@ document_manager:
 embedding_storage:
   db_path: "data/chroma_db"
   collection_name: "embeddings"
-  embedding_dim: 384
-  similarity_threshold: 0.5
+  embedding_dim: 768
+  similarity_threshold: 0.8
 
 # === DB ===
 database:
@@ -78,11 +78,11 @@ documents_folder: "documents"
 
 dialog_manager:
   prompt_template: |
-    USER: Вот информация:
-    {context}
-
+    На основе следующего контекста ответьте на вопрос. Используйте ТОЛЬКО информацию из контекста.
+    НЕ ДОБАВЛЯЙ ВЫДУМАННЫХ ИЛИ НЕРЕЛЕВАНТНЫХ ДЕТАЛЕЙ.
+    Контекст: {context}
     Вопрос: {question}
-    Помоги мне, пожалуйста. Ответ:
+    Ответ:
     ASSISTANT:
   show_text_source_info: true
   show_text_fragments: true
@@ -91,8 +91,8 @@ dialog_manager:
     no_contexts_found: "Извините, я не нашёл подходящей информации для ответа."
 
 logging:
-  level: INFO
+  level: DEBUG
   file: logs/app.log
   max_bytes: 10485760          # 10 MB
   backup_count: 5
-  console_level: WARNING
+  console_level: DEBUG

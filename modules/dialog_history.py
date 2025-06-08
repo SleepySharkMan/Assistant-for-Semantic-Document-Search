@@ -19,7 +19,7 @@ class DialogHistory:
                 assistant_text=assistant_text.strip()
             )
             session.add(dialog)
-            logger.debug("Сохранён диалог: %s → %s", user_text.strip(), assistant_text.strip())
+            logger.debug("Сохранён диалог: %s -> %s", user_text.strip(), assistant_text.strip())
 
     def fetch_latest(self, user_id: str, limit: int = 30) -> list[dict]:
         with self.session_factory() as session:

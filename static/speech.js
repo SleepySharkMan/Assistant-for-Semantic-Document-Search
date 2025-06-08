@@ -7,7 +7,11 @@ let currentButton = null;
  * @param {HTMLElement|null} button - Кнопка, с которой было взаимодействие.
  */
 export function speakText(text, button = null) {
-  if (!button) return;
+  // Если это автоматическое воспроизведение (без кнопки), просто воспроизводим
+  if (!button) {
+    playAudio(text);
+    return;
+  }
 
   // Если кнопка уже заблокирована — выходим
   if (button.disabled) return;
@@ -29,7 +33,15 @@ export function speakText(text, button = null) {
   }
 
   button.disabled = true;
+  playAudio(text, button);
+}
 
+/**
+ * Внутренняя функция для воспроизведения аудио
+ * @param {string} text - Текст для озвучивания
+ * @param {HTMLElement|null} button - Кнопка (опционально)
+ */
+function playAudio(text, button = null) {
   fetch("/api/text-to-speech", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -40,22 +52,34 @@ export function speakText(text, button = null) {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       currentAudio = audio;
-      currentButton = button;
-      currentButton.classList.add("playing");
-
-      audio.play().then(() => {
-        button.disabled = false;
-      });
+      
+      if (button) {
+        currentButton = button;
+        currentButton.classList.add("playing");
+        
+        audio.play().then(() => {
+          button.disabled = false;
+        });
+      } else {
+        // Автоматическое воспроизведение
+        audio.play().catch(err => {
+          console.error("Ошибка автовоспроизведения:", err);
+        });
+      }
 
       audio.onended = () => {
-        currentButton?.classList.remove("playing");
+        if (currentButton) {
+          currentButton.classList.remove("playing");
+        }
         currentAudio = null;
         currentButton = null;
       };
     })
     .catch(err => {
       console.error("Ошибка озвучивания:", err);
-      button.disabled = false;
+      if (button) {
+        button.disabled = false;
+      }
     });
 }
 

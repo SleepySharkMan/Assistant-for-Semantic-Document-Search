@@ -1,6 +1,6 @@
 import re
+import logging
 from config_models import TextSplitterConfig
-
 
 class TextContextSplitter:
     def __init__(self, config: TextSplitterConfig):
@@ -23,13 +23,24 @@ class TextContextSplitter:
             raise ValueError
         
     def split(self, content: str) -> list[str]:
+        if not content or not content.strip():
+            logging.warning("Empty or whitespace-only input provided")
+            return []
+        original_len = len(content)
+        content = content.replace('\r\n', '\n').replace('\r', '\n')
+        content = re.sub(r'([.!?])\s*\1+', r'\1', content)
+        content = re.sub(r'\s+', ' ', content).strip()
+        if not content:
+            logging.warning(f"Text was removed after preprocessing (original length: {original_len})")
+            return []
+        logging.debug(f"Processed text length: {len(content)}, method: {self.config.method}")
         if self.config.method == "words":
             return self.split_by_words(content)
         if self.config.method == "sentences":
             return self.split_by_sentences(content)
         if self.config.method == "paragraphs":
             return self.split_by_paragraphs(content)
-        raise ValueError(f"Unknown split method: {self.method}")
+        raise ValueError(f"Unknown split method: {self.config.method}")
 
     def split_by_words(self, content: str) -> list[str]:
         wp, ow = self.config.words_per_context, self.config.overlap_words

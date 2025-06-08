@@ -81,6 +81,49 @@ export function addMessage(text, sender, sources = null, fragments = null) {
 }
 
 /**
+ * Показывает индикатор загрузки (мигающие точки) от бота
+ * @returns {HTMLElement} - элемент индикатора для последующего удаления
+ */
+export function showLoadingIndicator() {
+  const messagesContainer = document.getElementById("messages");
+
+  const loadingMsg = document.createElement("div");
+  loadingMsg.className = "message bot-message loading-message";
+  loadingMsg.id = "loading-indicator";
+
+  const content = document.createElement("div");
+  content.className = "message-content";
+
+  const loadingDots = document.createElement("div");
+  loadingDots.className = "loading-dots";
+  
+  // Создаем 3 точки
+  for (let i = 0; i < 3; i++) {
+    const dot = document.createElement("span");
+    dot.className = "loading-dot";
+    loadingDots.appendChild(dot);
+  }
+
+  content.appendChild(loadingDots);
+  loadingMsg.appendChild(content);
+
+  messagesContainer.appendChild(loadingMsg);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  return loadingMsg;
+}
+
+/**
+ * Удаляет индикатор загрузки
+ */
+export function hideLoadingIndicator() {
+  const loadingIndicator = document.getElementById("loading-indicator");
+  if (loadingIndicator) {
+    loadingIndicator.remove();
+  }
+}
+
+/**
  * Удаляет все сообщения из DOM и localStorage.
  */
 export function clearMessages() {

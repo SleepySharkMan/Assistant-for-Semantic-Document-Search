@@ -37,7 +37,6 @@ _yaml = YAML()
 _yaml.preserve_quotes = True
 socketio: SocketIO | None = None
 
-# Кастомный обработчик логов для отправки через WebSocket
 
 
 class WebSocketHandler(logging.Handler):
@@ -49,7 +48,7 @@ class WebSocketHandler(logging.Handler):
             socketio.emit('log_message', {
                            'timestamp': record.asctime, 'level': record.levelname, 'message': log_entry})
         except Exception as e:
-            print(f"Ошибка отправки лога через WebSocket: {e}")
+            logger.info(f"Ошибка отправки лога через WebSocket: {e}")
 
 
 def _convert_config_to_dict(obj: Any) -> Any:
@@ -491,7 +490,6 @@ def stop_app(socketio: SocketIO = None):
     try:
         with _services_lock:
             _running = False
-            print("4: _running установлен в False")
     except Exception as e:
         return {"status": "error", "message": f"Ошибка при остановке: {e}"}, 500
 

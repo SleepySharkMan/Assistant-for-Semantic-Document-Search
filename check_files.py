@@ -18,4 +18,4 @@ stats = storage.get_collection_stats()
 print(f"Количество документов: {stats['count']}")
 results = storage.collection.get(include=["metadatas"])
 for doc_id, meta in zip(results["ids"], results["metadatas"]):
-    print(f"ID: {doc_id}, Source: {meta.get('source')}, Content: {meta.get('content')[:100]}...")
+    print(f"ID: {doc_id}, Source: {meta.get('source')}, Content: {meta.get('content')}")

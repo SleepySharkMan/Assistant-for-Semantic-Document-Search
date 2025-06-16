@@ -39,38 +39,25 @@ class DialogManager:
         self._msg_empty  = config.messages.empty_storage
         self._msg_no_ctx = config.messages.no_contexts_found
 
-    def answer_text(
-        self,
-        user_id: str,
-        question: str,
-        *,
-        top_k: int = 3,
-        request_source_info: Optional[bool] = None,
-        request_fragments: Optional[bool] = None
-        ) -> dict:
-        """
-        Обрабатывает запрос на получение ответа с учетом флагов для фрагментов текста и источников.
-        
-        :param user_id: Идентификатор пользователя.
-        :param question: Вопрос пользователя.
-        :param top_k: Количество наиболее похожих документов для обработки.
-        :param request_source_info: Флаг запроса источников (переопределяет конфиг).
-        :param request_fragments: Флаг запроса фрагментов текста (переопределяет конфиг).
-        :return: Ответ в формате словарь.
-        """
-
+    def answer_text(self, user_id: str, question: str, *, top_k: int = 3, request_source_info: Optional[bool] = None, request_fragments: Optional[bool] = None) -> dict:
         req_id = uuid.uuid4().hex[:8]
         start = time.perf_counter()
-
+        
         if self.storage.get_collection_stats()["count"] == 0:
             logger.info("[%s] storage empty", req_id)
             return {"answer": self._msg_empty}
-
+        
+        emb_start = time.perf_counter()
         q_emb = self.embedder.get_text_embedding(question)
+        logger.debug("[%s] Embedding generated in %.2f s", req_id, time.perf_counter() - emb_start)
+        
+        search_start = time.perf_counter()
         hits: List[Tuple[str, float]] = self.storage.search_similar(q_emb, top_k=top_k)
+        logger.debug("[%s] Search completed in %.2f s", req_id, time.perf_counter() - search_start)
+        
         if not hits:
             return {"answer": self._msg_no_ctx}
-
+        
         contexts: List[str] = []
         sources: List[str] = []
         for doc_id, _ in hits:
@@ -79,24 +66,24 @@ class DialogManager:
                 contexts.append(meta["content"])
             if meta and meta.get("source"):
                 sources.append(meta["source"])
-
+        
         if not contexts:
             return {"answer": self._msg_no_ctx}
-
+        
+        gen_start = time.perf_counter()
         prompt = self.prompt_template.format(context="\n\n".join(contexts), question=question.strip())
         answer = self._trim(self.generator.generate_response(prompt))
-
+        logger.debug("[%s] Response generated in %.2f s", req_id, time.perf_counter() - gen_start)
+        
         response = {"answer": answer}
-
         if self.show_text_fragments and (request_fragments is not False):
             response["fragments"] = contexts
-
         if self.show_text_source_info and (request_source_info is not False):
             response["sources"] = sources
-
+        
         self.history.save(user_id=user_id, user_text=question, assistant_text=answer)
         logger.info("[%s] answered in %.2f s", req_id, time.perf_counter() - start)
-
+        
         return response
     
     def answer_speech(self, audio: BytesIO) -> Optional[str]:

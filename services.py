@@ -80,6 +80,7 @@ def _setup_logging(cfg: Any, socketio: SocketIO = None) -> None:
                 "formatter": "default",
                 "maxBytes": log_cfg.max_bytes,
                 "backupCount": log_cfg.backup_count,
+                "encoding": "utf-8",
             },
             "console": {
                 "class": "logging.StreamHandler",
@@ -329,25 +330,33 @@ def list_files(services: Dict[str, Any], socketio: SocketIO = None) -> Tuple[Dic
     try:
         with services["metadata_db"].session_factory() as session:
             files = services["metadata_db"].get_all_files()
+            logger.info("Получено %d записей из get_all_files: %s", len(files), files) 
             rows = []
+            seen_paths = set() 
             for f in files:
                 if not f.get("path") or not f.get("size") or not f.get("created_at"):
                     logger.warning("Некорректная запись в базе данных: %s", f)
                     continue
+                if f["path"] in seen_paths:
+                    logger.warning("Обнаружен дубликат в данных: %s", f["path"])
+                    continue
+                seen_paths.add(f["path"])
                 try:
-                    rows.append({
+                    row = {
                         "name": Path(f["path"]).name,
                         "size": f"{f['size']/1_048_576:.1f} MB",
                         "modified": dt.datetime.fromtimestamp(f["created_at"].timestamp()).strftime("%Y-%m-%d"),
                         "splitter_method": f["splitter_method"] or "unknown",
-                    })
+                    }
+                    rows.append(row)
+                    logger.debug("Добавлен файл в ответ: %s", row)
                 except Exception as e:
-                    logger.warning("Ошибка обработки файла %s: %s",
-                                   f.get("path", "unknown"), e)
+                    logger.warning("Ошибка обработки файла %s: %s", f.get("path", "unknown"), e)
                     continue
-        return {"status": "success", "files": rows}, 200
+            logger.info("Возвращено %d файлов в ответе: %s", len(rows), rows)
+            return {"status": "success", "files": rows}, 200
     except Exception as e:
-        logger.exception("Ошибка получения списка файлов")
+        logger.exception("Ошибка получения списка файлов: %s", e)
         return {"status": "error", "message": str(e)}, 500
 
 
@@ -488,8 +497,12 @@ def stop_app(socketio: SocketIO = None):
     global _services, _running
 
     try:
-        with _services_lock:
-            _running = False
+        _running = False
+        _services.update({
+        "generator": None,
+        "speech": None,
+        "dialog_manager": None,
+    })
     except Exception as e:
         return {"status": "error", "message": f"Ошибка при остановке: {e}"}, 500
 
@@ -623,29 +636,15 @@ def rebuild_services(config_path: str | Path = "config.yaml", socketio: SocketIO
     # Сохраняем копию существующих сервисов
     existing_services = dict(_services)
 
-    try:
-        # Проверяем, какие базовые сервисы нужно пересоздать
-        minimal_keys = {"config", "metadata_db", "document_manager", "splitter", "embedder", "embedding_storage"}
-        if any(k in existing_services for k in minimal_keys):
-            _services = minimal_init_classes(config_path, socketio)
-        else:
-            # Если нет базовых сервисов, инициализируем пустой _services с config
-            try:
-                cfg_loader = ConfigLoader(config_path)
-                cfg = cfg_loader.full
-                _setup_logging(cfg, socketio)
-                _services = {"config": cfg} if "config" in existing_services else {}
-            except Exception as e:
-                logger.exception("Ошибка загрузки конфигурации: %s", e)
-                return {}
+    _services = None
 
+    try:
+        _services = minimal_init_classes(config_path, socketio)
         full_keys = {"generator", "speech", "dialog_manager"}
         if any(k in existing_services for k in full_keys):
             _services = full_init_classes(config_path, socketio)
-
             _running = True
 
-        _services = {k: v for k, v in _services.items() if k in existing_services}
 
     except Exception as e:
         logger.exception("Ошибка пересоздания сервисов: %s", e)

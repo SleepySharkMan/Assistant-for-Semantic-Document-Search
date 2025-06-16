@@ -1,6 +1,7 @@
 import chromadb
 import numpy as np
 import logging
+import time
 
 from chromadb.config import Settings
 from chromadb.errors import InvalidCollectionException
@@ -62,21 +63,16 @@ class EmbeddingStorage:
             metadatas=[metadata]
         )
 
-    def search_similar(
-        self,
-        query_embedding: np.ndarray,
-        top_k: int = 5,
-        filters: Optional[Dict] = None
-    ) -> List[Tuple[str, float]]:
+    def search_similar(self, query_embedding: np.ndarray, top_k: int = 5, filters: Optional[Dict] = None) -> List[Tuple[str, float]]:
+        start_time = time.time()
         query = query_embedding.tolist()
-
         results = self.collection.query(
             query_embeddings=[query],
             n_results=min(top_k, self.collection.count()),
             where=filters,
             include=["distances"]
         )
-
+        logger.debug("Поиск в ChromaDB занял %.2f секунд", time.time() - start_time)
         threshold = self.similarity_threshold
         return [
             (doc_id, 1 - distance)

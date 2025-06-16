@@ -20,8 +20,8 @@ answer_generator:
     num_return_sequences: 1
     no_repeat_ngram_size: 4
     repetition_penalty: 1.1
-    early_stopping: false
-    enable_cpu_offload: true
+    early_stopping: true
+    enable_cpu_offload: false
 
     deterministic:
       num_beams: 3
@@ -37,10 +37,10 @@ answer_generator:
 
 # === TextContextSplitter ===
 splitter:
-  method: sentences
-  words_per_context: 100
+  method: words
+  words_per_context: 30
   overlap_words: 20
-  sentences_per_context: 2
+  sentences_per_context: 1
   overlap_sentences: 2
   paragraphs_per_context: 1
   overlap_lines: 1
@@ -49,7 +49,7 @@ splitter:
 document_manager:
   processing:                    # DocumentProcessingConfig
     image_enabled: true
-    allowed_extensions: .txt,.pdf,.docx
+    allowed_extensions: .txt,.pdf,.docx,.png,.jpg
   captioning:                    # ImageCaptioningConfig
     device: "cuda:0"
     model_name: "models/blip-image-captioning-base"
@@ -59,7 +59,7 @@ embedding_storage:
   db_path: "data/chroma_db"
   collection_name: "embeddings"
   embedding_dim: 768
-  similarity_threshold: 0.8
+  similarity_threshold: 0.7
 
 # === DB ===
 database:

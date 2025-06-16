@@ -27,7 +27,7 @@ class ImageCaptioner:
 
     def extract_text(self, image_path: Union[str, Path]) -> str:
         """
-        Генерирует caption для изображения.
+        Генерирует caption для изображения, добавляя название файла.
         Ресайзит до 512×512 для экономии памяти.
         """
         image_path = Path(image_path)
@@ -40,8 +40,10 @@ class ImageCaptioner:
         out = self.model.generate(**inputs)
         caption = self.processor.decode(out[0], skip_special_tokens=True).strip()
 
-        logger.debug("Сгенерировано описание для %s: %s", image_path, caption)
-        return caption
+        # Добавляем название файла к описанию
+        caption_with_filename = f"Image: {image_path.name}\n{caption}"
+        logger.debug("Сгенерировано описание для %s: %s", image_path, caption_with_filename)
+        return caption_with_filename
 
     def extract_metadata(self, image_path: Union[str, Path]) -> Dict:
         """

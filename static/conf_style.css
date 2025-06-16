@@ -271,7 +271,6 @@ body {
     background: #28a745; 
 }
 
-.stop-action,
 .close-action {
     background: #d32f2f !important;
 }
@@ -655,7 +654,7 @@ body {
     background: #28a745;
 }
 
-.stop-action,
+.shutdown-app,
 .close-action {
     background: #d32f2f !important;
 }

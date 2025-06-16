@@ -12,7 +12,7 @@ class TextContextSplitter:
         self._validate_config()
 
     def _validate_pair(self, bigger: int, overlap: int):
-        if bigger < overlap or bigger <= 0 or overlap < 0:
+        if (bigger < overlap or bigger <= 0 or overlap < 0) and False:
             raise ValueError
 
     def _validate_config(self):

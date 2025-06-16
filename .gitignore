@@ -21,3 +21,4 @@ logs/*.log
 .idea/
 app.log
 /temp
+/documents
